@@ -1,0 +1,70 @@
+@if (itemService.selectedRecipe()) {
+  <div class="profitability">
+    <h3>Analyse de rentabilité</h3>
+
+    @if (profitabilityService.result(); as result) {
+      <!-- Avertissement prix manquants -->
+      @if (!result.isComplete) {
+        <div class="warning" role="alert">
+          ⚠️ {{ result.missingPrices.length }} prix manquant(s) — le calcul est incomplet
+        </div>
+      }
+
+      <div class="breakdown">
+
+        <!-- Coût des ressources -->
+        <div class="breakdown__row">
+          <span class="breakdown__label">Coût des ressources</span>
+          <span class="breakdown__value">{{ result.resourceCost | number:'1.0-0' }} k</span>
+        </div>
+
+        <!-- Prix de vente -->
+        <div class="breakdown__row">
+          <span class="breakdown__label">Prix de vente</span>
+          <span class="breakdown__value"
+                [class.missing]="result.sellPrice === 0">
+            {{ result.sellPrice > 0 ? (result.sellPrice | number:'1.0-0') + ' k' : 'Non renseigné' }}
+          </span>
+        </div>
+
+        <div class="breakdown__divider"></div>
+
+        <!-- Marge brute -->
+        <div class="breakdown__row breakdown__row--total">
+          <span class="breakdown__label">Marge brute</span>
+          <span class="breakdown__value"
+                [class.positive]="result.grossMargin > 0"
+                [class.negative]="result.grossMargin < 0">
+            {{ result.grossMargin > 0 ? '+' : '' }}{{ result.grossMargin | number:'1.0-0' }} k
+          </span>
+        </div>
+
+        <!-- Pourcentage -->
+        <div class="breakdown__row breakdown__row--total">
+          <span class="breakdown__label">Rentabilité</span>
+          <span class="breakdown__value"
+                [class.positive]="result.marginPercent > 0"
+                [class.negative]="result.marginPercent < 0">
+            {{ result.marginPercent > 0 ? '+' : '' }}{{ result.marginPercent | number:'1.0-1' }} %
+          </span>
+        </div>
+
+      </div>
+
+      <!-- Verdict -->
+      <div class="verdict"
+           [class.verdict--positive]="result.grossMargin > 0"
+           [class.verdict--negative]="result.grossMargin < 0"
+           [class.verdict--neutral]="result.grossMargin === 0"
+           aria-live="polite">
+        @if (result.grossMargin > 0) {
+          ✅ Craft rentable
+        } @else if (result.grossMargin < 0) {
+          ❌ Craft à perte ({{ result.grossMargin | number:'1.0-0' }} k)
+        } @else {
+          ➖ Craft à l'équilibre
+        }
+      </div>
+    }
+  </div>
+}

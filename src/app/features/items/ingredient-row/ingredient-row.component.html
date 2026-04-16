@@ -1,0 +1,71 @@
+<div class="ingredient"
+     [class.ingredient--craft]="isCraft"
+     [class.ingredient--nested]="currentDepth() > 0">
+
+  <!-- Ligne principale de l'ingrédient -->
+  <div class="ingredient__row">
+    <span class="ingredient__qty">× {{ ingredient().quantity }}</span>
+    <div class="ingredient__info">
+      <span class="ingredient__name">{{ ingredient().item_name['fr'] }}</span>
+      <span class="ingredient__level">Niv. {{ ingredient().item_level }}</span>
+    </div>
+
+    @if (canToggle) {
+      <button
+        class="btn-mode-toggle"
+        [class.btn-mode-toggle--craft]="isCraft"
+        (click)="onToggleCraftMode()"
+        [attr.aria-pressed]="isCraft"
+        [title]="isCraft ? 'Basculer en prix marché' : 'Basculer en prix craft'"
+      >
+        @if (isCraft) { 🔨 Craft } @else { 🛒 Marché }
+      </button>
+    }
+
+    @if (isCraft) {
+      <div class="craft-cost-display">
+        @if (craftCost; as cost) {
+          <span class="craft-cost">{{ cost | number:'1.0-0' }} k</span>
+          <span class="craft-cost__label">coût craft</span>
+        } @else {
+          <span class="craft-cost--missing">Prix manquants</span>
+        }
+      </div>
+    } @else {
+      <div class="price-input-group">
+        @if (priceService.getPrice(ingredient().item_id); as p) {
+          <span class="current-price">{{ p | number }} k</span>
+        }
+        <input
+          type="number"
+          placeholder="Prix..."
+          min="0"
+          class="price-input price-input--small"
+          #priceInput
+          [value]="priceService.getPrice(ingredient().item_id) ?? ''"
+          (keyup.enter)="onSetPrice(priceInput.value)"
+          [attr.aria-label]="'Prix marché de ' + ingredient().item_name['fr']"
+        />
+        <button class="btn-save"
+          (click)="onSetPrice(priceInput.value)"
+          [attr.aria-label]="'Enregistrer le prix de ' + ingredient().item_name['fr']">
+          💾
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- Sous-ingrédients (si en mode craft et profondeur non atteinte) -->
+  @if (isCraft && currentDepth() < maxDepth() && subRecipe) {
+    <div class="sub-ingredients">
+      @for (subIng of subRecipe.ingredients; track subIng.item_id) {
+        <app-ingredient-row
+          [ingredient]="subIng"
+          [currentDepth]="currentDepth() + 1"
+          [maxDepth]="maxDepth()"
+        />
+      }
+    </div>
+  }
+
+</div>

@@ -4,7 +4,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/app",
-    "types": []
+    "types": [],
+    "paths": {
+      "@electron": ["./src/electron.d.ts"]
+    }
   },
   "include": [
     "src/**/*.ts"

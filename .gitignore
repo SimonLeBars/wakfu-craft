@@ -2,9 +2,16 @@
 
 # Compiled output
 /dist
+/dist-electron
 /tmp
 /out-tsc
 /bazel-out
+
+# Electron build output
+/electron-dist
+
+# Tesseract OCR language data (téléchargé automatiquement au premier lancement)
+*.traineddata
 
 # Node
 /node_modules

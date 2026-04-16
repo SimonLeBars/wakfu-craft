@@ -1,0 +1,70 @@
+.profitability {
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 24px;
+  border: 1px solid #2a2a3e;
+
+  h3 {
+    margin: 0 0 16px;
+    color: #a0a0d0;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.warning {
+  background: #3a2a00;
+  color: #fbbf24;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+
+    &--total {
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+  }
+
+  &__label { color: #a0a0d0; }
+
+  &__value {
+    font-family: monospace;
+    font-size: 1rem;
+
+    &.positive { color: #4ade80; }
+    &.negative { color: #f87171; }
+    &.missing  { color: #666; font-style: italic; }
+  }
+
+  &__divider {
+    border-top: 1px solid #2a2a3e;
+    margin: 4px 0;
+  }
+}
+
+.verdict {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+
+  &--positive { background: #1a3a2a; color: #4ade80; }
+  &--negative { background: #3a1a1a; color: #f87171; }
+  &--neutral  { background: #2a2a2a; color: #888; }
+}

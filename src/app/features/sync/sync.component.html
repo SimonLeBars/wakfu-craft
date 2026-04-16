@@ -1,0 +1,60 @@
+<div class="sync-container">
+  <h2>Synchronisation des données Wakfu</h2>
+
+  <!-- Infos de version -->
+  @if (sync.versionInfo()) {
+    <div class="version-card">
+      <div class="version-row">
+        <span class="label">Version distante</span>
+        <span class="value">{{ sync.versionInfo()!.remoteVersion }}</span>
+      </div>
+      <div class="version-row">
+        <span class="label">Version locale</span>
+        <span class="value">{{ sync.versionInfo()!.localVersion ?? 'Aucune' }}</span>
+      </div>
+      <div class="version-row">
+        <span class="label">Statut</span>
+        <span class="badge" [class.badge--ok]="!sync.versionInfo()!.needsUpdate"
+                            [class.badge--warn]="sync.versionInfo()!.needsUpdate">
+          {{ sync.versionInfo()!.needsUpdate ? 'Mise à jour disponible' : 'À jour' }}
+        </span>
+      </div>
+    </div>
+  }
+
+  <!-- Bouton de synchro -->
+  <button class="btn-sync"
+          [disabled]="sync.status() === 'downloading' || sync.status() === 'checking'"
+          (click)="startSync()">
+    @switch (sync.status()) {
+      @case ('checking')    { ⏳ Vérification... }
+      @case ('downloading') { ⏳ Téléchargement en cours... }
+      @case ('done')        { ✅ Synchronisation terminée }
+      @default              { 🔄 Lancer la synchronisation }
+    }
+  </button>
+
+  <!-- Log de progression -->
+  @if (sync.progressLog().length > 0) {
+    <div class="progress-log">
+      @for (entry of sync.progressLog(); track entry.file + entry.status) {
+        <div class="log-entry" [class]="'log-entry--' + entry.status">
+          <span class="log-file">{{ entry.file }}.json</span>
+          <span class="log-status">
+            @switch (entry.status) {
+              @case ('downloading') { ⬇️ Téléchargement... }
+              @case ('cached')      { 💾 Déjà en cache }
+              @case ('downloaded')  { ✅ Téléchargé }
+              @case ('imported')    { ✅ Importé — {{ entry.count }} entrées }
+            }
+          </span>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Erreur -->
+  @if (sync.error()) {
+    <div class="error-box">❌ {{ sync.error() }}</div>
+  }
+</div>

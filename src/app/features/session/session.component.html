@@ -1,0 +1,117 @@
+<div class="session-layout">
+
+  <!-- Colonne gauche : gestion des sessions -->
+  <div class="sessions-panel">
+    <div class="panel-header">
+      <h2>Sessions</h2>
+      <button class="btn-icon" (click)="showNewSession.set(!showNewSession())">＋</button>
+    </div>
+
+    @if (showNewSession()) {
+      <div class="new-session-form">
+        <input
+          type="text"
+          placeholder="Nom de la session..."
+          [ngModel]="newSessionName()"
+          (ngModelChange)="newSessionName.set($event)"
+          (keyup.enter)="onCreateSession()"
+          class="text-input"
+          autofocus
+        />
+        <button class="btn-primary" (click)="onCreateSession()">Créer</button>
+      </div>
+    }
+
+    <div class="sessions-list">
+      @for (session of sessionService.sessions(); track session.id) {
+        <div class="session-item"
+             [class.active]="sessionService.activeSession()?.id === session.id"
+             (click)="sessionService.selectSession(session)">
+          <div class="session-item__info">
+            <span class="session-item__name">{{ session.name }}</span>
+            <span class="session-item__count">{{ session.item_count }} craft(s)</span>
+          </div>
+          <button class="btn-delete"
+            (click)="$event.stopPropagation(); sessionService.deleteSession(session.id)">
+            🗑️
+          </button>
+        </div>
+      }
+
+      @if (sessionService.sessions().length === 0) {
+        <div class="empty-sessions">Aucune session — crée-en une !</div>
+      }
+    </div>
+
+    <!-- Items craftés dans la session active -->
+    @if (sessionService.activeSession()) {
+      <div class="session-crafts">
+        <h3>Crafts planifiés</h3>
+        @for (item of sessionService.sessionItems(); track item.session_item_id) {
+          <div class="craft-item">
+            <span class="craft-item__name">{{ item.item_name['fr'] }}</span>
+            <div class="craft-item__controls">
+              <input
+                type="number"
+                [value]="item.craft_quantity"
+                min="1"
+                class="qty-input"
+                (change)="onUpdateQty(item.session_item_id, $any($event.target).value)"
+              />
+              <button class="btn-delete"
+                (click)="onRemoveItem(item.session_item_id)">✕</button>
+            </div>
+          </div>
+        }
+        @if (sessionService.sessionItems().length === 0) {
+          <div class="empty-crafts">
+            Ajoute des items depuis l'écran Items 🗡️
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Colonne droite : liste de courses -->
+  <div class="shopping-panel">
+    @if (!sessionService.activeSession()) {
+      <div class="empty-state">Sélectionne ou crée une session</div>
+    } @else {
+      <div class="panel-header">
+        <h2>Liste de courses — {{ sessionService.activeSession()!.name }}</h2>
+      </div>
+
+      @if (sessionService.shoppingList().length === 0) {
+        <div class="empty-state">Aucun ingrédient — ajoute des crafts à la session</div>
+      } @else {
+        <div class="shopping-list">
+          @for (item of sessionService.shoppingList(); track item.item_id) {
+            <div class="shopping-item">
+              <div class="shopping-item__info">
+                <span class="shopping-item__name">{{ item.item_name['fr'] }}</span>
+                <span class="shopping-item__level">Niv. {{ item.item_level }}</span>
+              </div>
+              <div class="shopping-item__right">
+                <span class="shopping-item__qty">× {{ item.total_quantity }}</span>
+                @if (priceService.getPrice(item.item_id); as price) {
+                  <span class="shopping-item__cost">
+                    {{ price * item.total_quantity | number:'1.0-0' }} k
+                  </span>
+                } @else {
+                  <span class="shopping-item__cost missing">Prix manquant</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Total -->
+        <div class="shopping-total">
+          <span>Total estimé</span>
+          <span class="shopping-total__value">{{ totalCost() | number:'1.0-0' }} k</span>
+        </div>
+      }
+    }
+  </div>
+
+</div>

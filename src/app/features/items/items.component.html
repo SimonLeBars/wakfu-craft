@@ -1,0 +1,118 @@
+<div class="items-layout">
+
+  <!-- Panneau gauche : recherche -->
+  <div class="search-panel">
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Rechercher un item..."
+        [(ngModel)]="searchQuery"
+        (input)="onSearch()"
+        class="search-input"
+        aria-label="Rechercher un item"
+      />
+      @if (searchQuery) {
+        <button class="clear-btn" (click)="searchQuery = ''; itemService.clearSelection()" aria-label="Effacer la recherche">✕</button>
+      }
+    </div>
+
+    @if (itemService.isLoading()) {
+      <div class="loading" aria-live="polite">Recherche...</div>
+    }
+
+    <div class="results-list" role="listbox" aria-label="Résultats de recherche">
+      @for (item of itemService.searchResults(); track item.id) {
+        <div
+          class="result-item"
+          [class.selected]="itemService.selectedItem()?.id === item.id"
+          (click)="onSelectItem(item)"
+          role="option"
+          [attr.aria-selected]="itemService.selectedItem()?.id === item.id"
+          tabindex="0"
+          (keyup.enter)="onSelectItem(item)"
+        >
+          <div class="result-item__name">{{ item.name['fr'] }}</div>
+          <div class="result-item__meta">
+            <span class="level">Niv. {{ item.level }}</span>
+            @if (item.hasRecipe) {
+              <span class="badge-recipe">Craftable</span>
+            }
+          </div>
+        </div>
+      }
+
+      @if (searchQuery.length >= 2 && !itemService.isLoading() && itemService.searchResults().length === 0) {
+        <div class="no-results">Aucun résultat pour "{{ searchQuery }}"</div>
+      }
+    </div>
+  </div>
+
+  <!-- Panneau droit : recette -->
+  <div class="recipe-panel">
+    @if (!itemService.selectedItem()) {
+      <div class="empty-state">
+        <span>Sélectionne un item pour voir sa recette</span>
+      </div>
+    } @else {
+      <div class="recipe-header">
+        <h2>{{ itemService.selectedItem()!.name['fr'] }}</h2>
+        <span class="level-badge">Niveau {{ itemService.selectedItem()!.level }}</span>
+        @if (itemService.selectedRecipe()) {
+          <button class="btn-add-session" (click)="onAddToSession()">
+            🛒 Ajouter à la session
+          </button>
+        }
+      </div>
+
+      <!-- Prix de vente de l'équipement crafté -->
+      <div class="price-section">
+        <h3>Prix de vente</h3>
+        <div class="price-input-row">
+          <span class="price-label">{{ itemService.selectedItem()!.name['fr'] }}</span>
+          <div class="price-input-group">
+            @if (priceService.getPrice(itemService.selectedItem()!.id); as currentPrice) {
+              <span class="current-price">{{ currentPrice | number }} k</span>
+            }
+            <input
+              type="number"
+              placeholder="Prix..."
+              min="0"
+              class="price-input"
+              #sellPriceInput
+              [value]="priceService.getPrice(itemService.selectedItem()!.id) ?? ''"
+              (keyup.enter)="onSetSellPrice(sellPriceInput.value)"
+              aria-label="Prix de vente"
+            />
+            <button class="btn-save"
+              (click)="onSetSellPrice(sellPriceInput.value)"
+              aria-label="Enregistrer le prix de vente">
+              💾
+            </button>
+          </div>
+        </div>
+      </div>
+
+      @if (!itemService.selectedRecipe()) {
+        <div class="no-recipe">Cet item n'a pas de recette de craft.</div>
+      } @else {
+        <div class="recipe-meta">
+          <span>📊 Niveau de recette : {{ itemService.selectedRecipe()!.level }}</span>
+          <span>⭐ XP : {{ itemService.selectedRecipe()!.xp_ratio }}</span>
+        </div>
+
+        <h3>Ingrédients</h3>
+        <div class="ingredients-list">
+          @for (ing of itemService.selectedRecipe()!.ingredients; track ing.item_id) {
+            <app-ingredient-row [ingredient]="ing" />
+          }
+        </div>
+      }
+    }
+
+    <!-- Analyse de rentabilité -->
+    <app-profitability />
+    <!-- Historique du prix de l'item sélectionné -->
+    <app-price-history [item]="itemService.selectedItem()" />
+  </div>
+
+</div>
