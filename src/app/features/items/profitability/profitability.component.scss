@@ -1,24 +1,21 @@
+@use 'styles/mixins' as *;
+
 .profitability {
-  background: #1a1a2e;
-  border-radius: 8px;
+  @include card;
   padding: 20px;
   margin-top: 24px;
-  border: 1px solid #2a2a3e;
 
   h3 {
+    @include section-title;
     margin: 0 0 16px;
-    color: #a0a0d0;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 }
 
 .warning {
-  background: #3a2a00;
-  color: #fbbf24;
+  background: var(--warning-bg);
+  color: var(--warning);
   padding: 8px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 0.85rem;
   margin-bottom: 16px;
 }
@@ -29,30 +26,23 @@
   gap: 10px;
 
   &__row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    @include flex-between;
     font-size: 0.95rem;
-
-    &--total {
-      font-size: 1.05rem;
-      font-weight: 600;
-    }
+    &--total { font-size: 1.05rem; font-weight: 600; }
   }
 
-  &__label { color: #a0a0d0; }
+  &__label { color: var(--text-label); }
 
   &__value {
     font-family: monospace;
     font-size: 1rem;
-
-    &.positive { color: #4ade80; }
-    &.negative { color: #f87171; }
-    &.missing  { color: #666; font-style: italic; }
+    &.positive { color: var(--success); }
+    &.negative { color: var(--error); }
+    &.missing  { color: var(--text-muted); font-style: italic; }
   }
 
   &__divider {
-    border-top: 1px solid #2a2a3e;
+    border-top: 1px solid var(--border);
     margin: 4px 0;
   }
 }
@@ -60,11 +50,11 @@
 .verdict {
   margin-top: 16px;
   padding: 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   text-align: center;
   font-weight: 600;
 
-  &--positive { background: #1a3a2a; color: #4ade80; }
-  &--negative { background: #3a1a1a; color: #f87171; }
-  &--neutral  { background: #2a2a2a; color: #888; }
+  &--positive { background: var(--success-bg); color: var(--success); }
+  &--negative { background: var(--error-bg);   color: var(--error); }
+  &--neutral  { background: #2a2a2a;            color: var(--text-dim); }
 }

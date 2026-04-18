@@ -1,15 +1,15 @@
+@use 'styles/mixins' as *;
+
 .sync-container {
   max-width: 600px;
   margin: 40px auto;
   padding: 0 24px;
-  font-family: sans-serif;
 }
 
 h2 { margin-bottom: 24px; }
 
 .version-card {
-  background: #1e1e2e;
-  border-radius: 8px;
+  @include card;
   padding: 16px 20px;
   margin-bottom: 20px;
   display: flex;
@@ -17,42 +17,38 @@ h2 { margin-bottom: 24px; }
   gap: 10px;
 }
 
-.version-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+.version-row { @include flex-between; }
 
-.label { color: #888; font-size: 0.9rem; }
+.label { color: var(--text-dim); font-size: 0.9rem; }
 .value { font-weight: 600; }
 
 .badge {
   padding: 3px 10px;
-  border-radius: 12px;
+  border-radius: var(--radius-pill);
   font-size: 0.8rem;
   font-weight: 600;
-  &--ok   { background: #1a4731; color: #4ade80; }
-  &--warn { background: #4a3500; color: #fbbf24; }
+  &--ok   { background: var(--success-bg); color: var(--success); }
+  &--warn { background: var(--warning-bg); color: var(--warning); }
 }
 
 .btn-sync {
   width: 100%;
   padding: 12px;
   border: none;
-  border-radius: 8px;
-  background: #5865f2;
+  border-radius: var(--radius-md);
+  background: var(--accent);
   color: white;
   font-size: 1rem;
   cursor: pointer;
   margin-bottom: 20px;
   transition: opacity 0.2s;
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:disabled          { opacity: 0.5; cursor: not-allowed; }
   &:not(:disabled):hover { opacity: 0.85; }
 }
 
 .progress-log {
-  background: #111;
-  border-radius: 8px;
+  background: var(--bg-code);
+  border-radius: var(--radius-md);
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
@@ -60,21 +56,21 @@ h2 { margin-bottom: 24px; }
 }
 
 .log-entry {
-  display: flex;
-  justify-content: space-between;
+  @include flex-between;
   font-size: 0.85rem;
   padding: 4px 0;
   border-bottom: 1px solid #222;
-  &--imported   { color: #4ade80; }
-  &--cached     { color: #60a5fa; }
-  &--downloaded { color: #a3e635; }
-  &--downloading { color: #fbbf24; }
+  &--imported    { color: var(--success); }
+  &--cached      { color: var(--cached); }
+  &--downloaded  { color: var(--downloaded); }
+  &--downloading { color: var(--warning); }
 }
 
-.log-file  { font-family: monospace; }
+.log-file { font-family: monospace; }
+
 .error-box {
-  background: #4a1515;
-  color: #f87171;
+  background: var(--error-bg);
+  color: var(--error);
   padding: 12px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }

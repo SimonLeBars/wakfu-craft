@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 @Component({
@@ -7,11 +7,6 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
-export class App implements OnInit {
+export class App {
   protected readonly title = signal('wakfu-craft');
-
-  ngOnInit(): void {
-    window.electronAPI.checkVersion().then(v => console.log(v));
-    window.electronAPI.debugReadFile('jobsItems').then(d => console.log(JSON.stringify(d, null, 2)));
-  }
 }

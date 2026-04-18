@@ -1,0 +1,87 @@
+@mixin card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+@mixin input-base {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-input);
+  background: var(--bg-primary);
+  color: var(--text);
+  font-size: 0.9rem;
+  &:focus { outline: none; border-color: var(--accent); }
+}
+
+@mixin btn-icon {
+  background: none;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--transition);
+  &:hover { border-color: var(--accent); }
+}
+
+@mixin btn-primary {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  &:hover { opacity: 0.85; }
+}
+
+@mixin btn-save {
+  background: none;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: border-color var(--transition);
+  &:hover { border-color: var(--accent); }
+}
+
+@mixin flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@mixin section-title {
+  color: var(--text-label);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@mixin hover-row {
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-light);
+  transition: background var(--transition);
+  &:hover { background: var(--bg-hover); }
+}
+
+@mixin active-item {
+  background: var(--bg-active);
+  border-left: 3px solid var(--accent);
+}
+
+@mixin sidebar-layout($width: 340px) {
+  display: grid;
+  grid-template-columns: #{$width} 1fr;
+  background: var(--bg-primary);
+  color: var(--text);
+  font-family: sans-serif;
+}
+
+@mixin price-field {
+  width: 100px;
+  padding: 6px 10px;
+  @include input-base;
+}

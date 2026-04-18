@@ -1,13 +1,13 @@
+@use 'styles/mixins' as *;
+
 // ── Conteneur ingrédient ────────────────────────────────────────────────────
 
 .ingredient {
-  background: #1a1a2e;
-  border: 1px solid #2a2a3e;
-  border-radius: 8px;
-  transition: border-color 0.15s;
+  @include card;
+  transition: border-color var(--transition);
 
   &--craft  { border-color: rgba(245, 158, 11, 0.35); }
-  &--nested { background: #151524; }
+  &--nested { background: var(--bg-nested); }
 }
 
 .ingredient__row {
@@ -20,7 +20,7 @@
 .ingredient__qty {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #5865f2;
+  color: var(--accent);
   min-width: 36px;
   flex-shrink: 0;
 }
@@ -42,29 +42,29 @@
 
 .ingredient__level {
   font-size: 0.75rem;
-  color: #888;
+  color: var(--text-dim);
 }
 
 // ── Toggle marché / craft ────────────────────────────────────────────────────
 
 .btn-mode-toggle {
   padding: 4px 10px;
-  border-radius: 12px;
-  border: 1px solid #3a3a5e;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-input);
   background: transparent;
-  color: #888;
+  color: var(--text-dim);
   cursor: pointer;
   font-size: 0.75rem;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
 
-  &:hover { border-color: #5865f2; color: #a0a0d0; }
+  &:hover { border-color: var(--accent); color: var(--text-label); }
 
   &--craft {
-    border-color: #f59e0b;
-    color: #f59e0b;
-    background: rgba(245, 158, 11, 0.1);
+    border-color: var(--craft);
+    color: var(--craft);
+    background: var(--craft-bg);
     &:hover { background: rgba(245, 158, 11, 0.2); }
   }
 }
@@ -80,17 +80,17 @@
 }
 
 .craft-cost {
-  color: #f59e0b;
+  color: var(--craft);
   font-weight: 600;
   font-size: 0.9rem;
 
   &__label {
     font-size: 0.65rem;
-    color: #888;
+    color: var(--text-dim);
   }
 
   &--missing {
-    color: #ef4444;
+    color: var(--error);
     font-size: 0.8rem;
     font-style: italic;
   }
@@ -106,7 +106,7 @@
 }
 
 .current-price {
-  color: #4ade80;
+  color: var(--success);
   font-weight: 600;
   font-size: 0.9rem;
   min-width: 60px;
@@ -114,27 +114,11 @@
 }
 
 .price-input {
-  width: 100px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid #3a3a5e;
-  background: #0f0f1a;
-  color: #e2e2f0;
-  font-size: 0.9rem;
-  &:focus { outline: none; border-color: #5865f2; }
-
+  @include price-field;
   &--small { width: 80px; }
 }
 
-.btn-save {
-  background: none;
-  border: 1px solid #3a3a5e;
-  border-radius: 6px;
-  padding: 6px 8px;
-  cursor: pointer;
-  transition: border-color 0.15s;
-  &:hover { border-color: #5865f2; }
-}
+.btn-save { @include btn-save; }
 
 // ── Sous-ingrédients (niveau suivant) ────────────────────────────────────────
 

@@ -1,1 +1,15 @@
-/* You can add global styles to this file, and also import other style files */
+@use 'styles/variables';
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-primary);
+  color: var(--text);
+  font-family: sans-serif;
+}
