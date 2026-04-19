@@ -11,15 +11,30 @@
     </div>
 
     @if (canToggle) {
-      <button
-        class="btn-mode-toggle"
-        [class.btn-mode-toggle--craft]="isCraft"
-        (click)="onToggleCraftMode()"
-        [attr.aria-pressed]="isCraft"
-        [title]="isCraft ? 'Basculer en prix marché' : 'Basculer en prix craft'"
-      >
-        @if (isCraft) { 🔨 Craft } @else { 🛒 Marché }
-      </button>
+      <div class="mode-toggle" [class.mode-toggle--craft]="isCraft" role="group" aria-label="Mode de prix">
+        <button
+          class="mode-toggle__option mode-toggle__market"
+          (click)="isCraft && onToggleCraftMode()"
+          [attr.aria-pressed]="!isCraft"
+          title="Prix marché"
+        >🛒 Marché</button>
+        <button
+          class="mode-toggle__option mode-toggle__craft"
+          (click)="!isCraft && onToggleCraftMode()"
+          [attr.aria-pressed]="isCraft"
+          title="Prix craft"
+        >🔨 Craft</button>
+      </div>
+      @if (isCraft && subRecipe) {
+        <button
+          class="btn-sub-recipe-toggle"
+          (click)="toggleSubRecipe()"
+          [attr.aria-expanded]="showSubRecipe()"
+          [title]="showSubRecipe() ? 'Masquer la sous-recette' : 'Afficher la sous-recette'"
+        >
+          {{ showSubRecipe() ? '▲' : '▼' }}
+        </button>
+      }
     }
 
     @if (isCraft) {
@@ -56,7 +71,7 @@
   </div>
 
   <!-- Sous-ingrédients (si en mode craft et profondeur non atteinte) -->
-  @if (isCraft && currentDepth() < maxDepth() && subRecipe) {
+  @if (isCraft && showSubRecipe() && currentDepth() < maxDepth() && subRecipe) {
     <div class="sub-ingredients">
       @for (subIng of subRecipe.ingredients; track subIng.item_id) {
         <app-ingredient-row

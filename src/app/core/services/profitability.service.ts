@@ -33,7 +33,7 @@ export class ProfitabilityService {
 
     for (const ing of recipe.ingredients) {
       const unitCost = this.computeUnitCost(
-        ing.item_id, craftMode, subRecipes, subCraftCosts, missingPrices, 2
+        ing.item_id, craftMode, subRecipes, subCraftCosts, missingPrices
       );
       if (unitCost !== null) {
         resourceCost += unitCost * ing.quantity;
@@ -57,9 +57,8 @@ export class ProfitabilityService {
 
   /**
    * Calcule récursivement le coût unitaire (pour 1 exemplaire) d'un item.
-   *
-   * @param maxDepth  Niveaux de craft restants autorisés.
-   *                  0 = toujours prix marché, 1 = 1 niveau, 2 = 2 niveaux…
+   * La profondeur n'est pas limitée ici — c'est le composant (canToggle) qui
+   * contrôle jusqu'où l'utilisateur peut activer le mode craft.
    *
    * Retourne null si un ou plusieurs prix sont manquants (et les enregistre
    * dans missingPrices). Remplit subCraftCosts pour l'affichage dans l'UI.
@@ -70,16 +69,15 @@ export class ProfitabilityService {
     subRecipes:    Partial<Record<number, Recipe | null>>,
     subCraftCosts: Partial<Record<number, number>>,
     missingPrices: number[],
-    maxDepth:      number,
   ): number | null {
-    if (maxDepth > 0 && craftMode.has(itemId)) {
+    if (craftMode.has(itemId)) {
       const subRecipe = subRecipes[itemId];
       if (subRecipe) {
         let total    = 0;
         let complete = true;
         for (const subIng of subRecipe.ingredients) {
           const subCost = this.computeUnitCost(
-            subIng.item_id, craftMode, subRecipes, subCraftCosts, missingPrices, maxDepth - 1
+            subIng.item_id, craftMode, subRecipes, subCraftCosts, missingPrices
           );
           if (subCost === null) {
             complete = false;

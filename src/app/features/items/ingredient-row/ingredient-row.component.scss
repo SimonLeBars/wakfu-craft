@@ -45,28 +45,62 @@
   color: var(--text-dim);
 }
 
-// ── Toggle marché / craft ────────────────────────────────────────────────────
+// ── Toggle marché / craft (segmented control) ────────────────────────────────
 
-.btn-mode-toggle {
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
+.mode-toggle {
+  display: flex;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+
+  &__option {
+    padding: 4px 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--transition), color var(--transition);
+    line-height: 1;
+  }
+
+  &__market {
+    border-right: 1px solid var(--border-input);
+    color: var(--success);
+    background: rgba(74, 222, 128, 0.12);
+  }
+
+  &__craft {
+    color: var(--text-muted);
+  }
+
+  &--craft {
+    border-color: var(--craft);
+
+    .mode-toggle__market {
+      color: var(--text-muted);
+      background: transparent;
+    }
+
+    .mode-toggle__craft {
+      color: var(--craft);
+      background: var(--craft-bg);
+    }
+  }
+}
+
+.btn-sub-recipe-toggle {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-input);
   background: transparent;
   color: var(--text-dim);
   cursor: pointer;
-  font-size: 0.75rem;
-  white-space: nowrap;
+  font-size: 0.7rem;
   flex-shrink: 0;
-  transition: border-color var(--transition), color var(--transition), background var(--transition);
-
-  &:hover { border-color: var(--accent); color: var(--text-label); }
-
-  &--craft {
-    border-color: var(--craft);
-    color: var(--craft);
-    background: var(--craft-bg);
-    &:hover { background: rgba(245, 158, 11, 0.2); }
-  }
+  transition: border-color var(--transition), color var(--transition);
+  &:hover { border-color: var(--craft); color: var(--craft); }
 }
 
 // ── Affichage du coût craft ──────────────────────────────────────────────────

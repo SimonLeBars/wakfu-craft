@@ -1,4 +1,4 @@
-import { Component, input, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { RecipeIngredient, Recipe } from '@electron';
 import { ItemService } from '../../../core/services/item.service';
@@ -18,7 +18,7 @@ export class IngredientRowComponent {
   /** Profondeur courante (0 = ingrédients directs de la recette principale) */
   readonly currentDepth = input<number>(0);
   /** Profondeur maximale toggle-able (les ingrédients à maxDepth ne peuvent plus être toggles) */
-  readonly maxDepth     = input<number>(2);
+  readonly maxDepth     = input<number>(4);
 
   protected readonly itemService          = inject(ItemService);
   protected readonly priceService         = inject(PriceService);
@@ -47,6 +47,9 @@ export class IngredientRowComponent {
   protected get canToggle(): boolean {
     return this.ingredient().hasRecipe && this.currentDepth() < this.maxDepth();
   }
+
+  protected readonly showSubRecipe = signal(true);
+  protected toggleSubRecipe(): void { this.showSubRecipe.update(v => !v); }
 
   async onToggleCraftMode(): Promise<void> {
     await this.itemService.toggleCraftMode(this.ingredient().item_id);
