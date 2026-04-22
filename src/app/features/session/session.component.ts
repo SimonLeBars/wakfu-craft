@@ -3,10 +3,11 @@ import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SessionService } from '../../core/services/session.service';
 import { PriceService } from '../../core/services/price.service';
+import { RarityColorPipe, RarityLabelPipe } from '../../shared/pipes/rarity.pipe';
 
 @Component({
   selector: 'app-session',
-  imports: [DecimalPipe, FormsModule],
+  imports: [DecimalPipe, FormsModule, RarityColorPipe, RarityLabelPipe],
   templateUrl: './session.component.html',
   styleUrl: './session.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -7,7 +7,7 @@ import { MIGRATIONS } from './migrations';
 // ── Types internes pour les données brutes de l'API Wakfu CDN ────────────────
 
 interface RawWakfuItem {
-  definition?: { item?: { id?: number; level?: number; baseParameters?: { itemTypeId?: number } } };
+  definition?: { item?: { id?: number; level?: number; baseParameters?: { itemTypeId?: number; rarity?: number } } };
   title?: Record<string, string>;
 }
 
@@ -37,15 +37,15 @@ interface RawWakfuRecipeResult {
 // ── Types internes pour les lignes SQL ───────────────────────────────────────
 
 interface SettingRow        { value: string }
-interface ItemRow           { id: number; name: string; type: number; level: number }
+interface ItemRow           { id: number; name: string; type: number; level: number; rarity: number | null }
 interface RecipeRow         { id: number; level: number; xp_ratio: number; category_id: number }
-interface IngredientRow     { quantity: number; item_id: number; item_name: string; item_level: number; item_type: number }
+interface IngredientRow     { quantity: number; item_id: number; item_name: string; item_level: number; item_type: number; rarity: number | null }
 interface PriceRow          { price: number }
 interface PriceItemRow      { item_id: number; price: number }
 interface RecipeIdRow       { id: number }
-interface SessionItemDbRow  { session_item_id: number; craft_quantity: number; item_id: number; item_name: string; item_level: number }
+interface SessionItemDbRow  { session_item_id: number; craft_quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null }
 interface ExistingItemRow   { id: number; quantity: number }
-interface ShoppingIngRow    { quantity: number; item_id: number; item_name: string; item_level: number }
+interface ShoppingIngRow    { quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null }
 
 
 export class DatabaseService {
@@ -203,7 +203,12 @@ export class DatabaseService {
 
   searchItems(query: string, lang: string = 'fr'): WakfuItem[] {
     const rows = this.db.prepare(`
-      SELECT i.id, i.name, i.type, i.level
+      SELECT i.id, i.name, i.type, i.level,
+             COALESCE(
+             json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
+             json_extract(i.raw_data, '$.definition.rarity'),
+             0
+           ) AS rarity
       FROM items i
       WHERE json_extract(i.name, '$.${lang}') LIKE @query
       ORDER BY i.level ASC
@@ -213,6 +218,7 @@ export class DatabaseService {
     return rows.map(row => ({
       ...row,
       name:      JSON.parse(row.name) as Record<string, string>,
+      rarity:    row.rarity ?? 0,
       hasRecipe: !!this.db.prepare('SELECT 1 FROM recipes WHERE result_item_id = ?').get(row.id),
     }));
   }
@@ -227,7 +233,12 @@ export class DatabaseService {
 
     const ingredients = this.db.prepare(`
       SELECT ri.quantity, i.id AS item_id, i.name AS item_name,
-             i.level AS item_level, i.type AS item_type
+             i.level AS item_level, i.type AS item_type,
+             COALESCE(
+               json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
+               json_extract(i.raw_data, '$.definition.rarity'),
+               0
+             ) AS rarity
       FROM recipe_ingredients ri
       JOIN items i ON i.id = ri.item_id
       WHERE ri.recipe_id = @recipeId
@@ -240,6 +251,7 @@ export class DatabaseService {
       ingredients: ingredients.map((ing): RecipeIngredient => ({
         ...ing,
         item_name: JSON.parse(ing.item_name) as Record<string, string>,
+        rarity:    ing.rarity ?? 0,
         hasRecipe: !!hasRecipeStmt.get(ing.item_id),
       })),
     };
@@ -318,13 +330,19 @@ export class DatabaseService {
   getSessionItems(sessionId: number): SessionItem[] {
     return (this.db.prepare(`
       SELECT si.id AS session_item_id, si.quantity AS craft_quantity,
-             i.id AS item_id, i.name AS item_name, i.level AS item_level
+             i.id AS item_id, i.name AS item_name, i.level AS item_level,
+             COALESCE(
+               json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
+               json_extract(i.raw_data, '$.definition.rarity'),
+               0
+             ) AS rarity
       FROM craft_session_items si
       JOIN items i ON i.id = si.item_id
       WHERE si.session_id = ? ORDER BY i.level ASC
     `).all(sessionId) as SessionItemDbRow[]).map(row => ({
       ...row,
       item_name: JSON.parse(row.item_name) as Record<string, string>,
+      rarity:    row.rarity ?? 0,
     }));
   }
 
@@ -338,7 +356,12 @@ export class DatabaseService {
       if (!recipe) continue;
 
       const ingredients = this.db.prepare(`
-        SELECT ri.quantity, i.id AS item_id, i.name AS item_name, i.level AS item_level
+        SELECT ri.quantity, i.id AS item_id, i.name AS item_name, i.level AS item_level,
+               COALESCE(
+                 json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
+                 json_extract(i.raw_data, '$.definition.rarity'),
+                 0
+               ) AS rarity
         FROM recipe_ingredients ri JOIN items i ON i.id = ri.item_id WHERE ri.recipe_id = ?
       `).all(recipe.id) as ShoppingIngRow[];
 
@@ -351,6 +374,7 @@ export class DatabaseService {
             item_id:        ing.item_id,
             item_name:      JSON.parse(ing.item_name) as Record<string, string>,
             item_level:     ing.item_level,
+            rarity:         ing.rarity ?? 0,
             total_quantity: totalQty,
           };
         }

@@ -8,10 +8,11 @@ import { ProfitabilityComponent } from './profitability/profitability.component'
 import { SessionService } from '../../core/services/session.service';
 import { PriceHistoryComponent } from './price-history/price-history.component';
 import { IngredientRowComponent } from './ingredient-row/ingredient-row.component';
+import { RarityColorPipe, RarityLabelPipe } from '../../shared/pipes/rarity.pipe';
 
 @Component({
   selector: 'app-items',
-  imports: [DecimalPipe, FormsModule, ProfitabilityComponent, PriceHistoryComponent, IngredientRowComponent],
+  imports: [DecimalPipe, FormsModule, ProfitabilityComponent, PriceHistoryComponent, IngredientRowComponent, RarityColorPipe, RarityLabelPipe],
   templateUrl: './items.component.html',
   styleUrl: './items.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

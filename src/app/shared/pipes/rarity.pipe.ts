@@ -1,0 +1,29 @@
+import { Pipe, PipeTransform } from '@angular/core';
+
+@Pipe({ name: 'rarityColor' })
+export class RarityColorPipe implements PipeTransform {
+  transform(rarity: number): string {
+    switch (rarity) {
+      case 2: return '#4ade80';
+      case 3: return '#f97316';
+      case 4: return '#facc15';
+      case 5: return '#a855f7';
+      case 6: return '#f472b6';
+      default: return '#6b7280';
+    }
+  }
+}
+
+@Pipe({ name: 'rarityLabel' })
+export class RarityLabelPipe implements PipeTransform {
+  transform(rarity: number): string {
+    switch (rarity) {
+      case 2: return 'Rare';
+      case 3: return 'Mythique';
+      case 4: return 'Légendaire';
+      case 5: return 'Relique';
+      case 6: return 'Épique';
+      default: return 'Commun';
+    }
+  }
+}

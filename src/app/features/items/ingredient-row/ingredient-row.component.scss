@@ -40,6 +40,12 @@
   text-overflow: ellipsis;
 }
 
+.ingredient__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .ingredient__level {
   font-size: 0.75rem;
   color: var(--text-dim);

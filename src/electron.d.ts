@@ -3,6 +3,7 @@ export interface RecipeIngredient {
   item_name:  Record<string, string>;
   item_level: number;
   item_type:  number;
+  rarity:     number;
   quantity:   number;
   hasRecipe:  boolean;
 }
@@ -20,6 +21,7 @@ export interface WakfuItem {
   name:      Record<string, string>;
   type:      number;
   level:     number;
+  rarity:    number;
   hasRecipe: boolean;
 }
 
@@ -34,12 +36,14 @@ export interface SessionItem {
   item_id:         number;
   item_name:       Record<string, string>;
   item_level:      number;
+  rarity:          number;
 }
 
 export interface ShoppingItem {
   item_id:        number;
   item_name:      Record<string, string>;
   item_level:     number;
+  rarity:         number;
   total_quantity: number;
 }
 

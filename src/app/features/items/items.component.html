@@ -34,6 +34,7 @@
           <div class="result-item__name">{{ item.name['fr'] }}</div>
           <div class="result-item__meta">
             <span class="level">Niv. {{ item.level }}</span>
+            <span class="badge-rarity" [style.color]="item.rarity | rarityColor">{{ item.rarity | rarityLabel }}</span>
             @if (item.hasRecipe) {
               <span class="badge-recipe">Craftable</span>
             }
@@ -57,6 +58,7 @@
       <div class="recipe-header">
         <h2>{{ itemService.selectedItem()!.name['fr'] }}</h2>
         <span class="level-badge">Niveau {{ itemService.selectedItem()!.level }}</span>
+        <span class="badge-rarity" [style.color]="itemService.selectedItem()!.rarity | rarityColor">{{ itemService.selectedItem()!.rarity | rarityLabel }}</span>
         @if (itemService.selectedRecipe()) {
           <button class="btn-add-session" (click)="onAddToSession()">
             🛒 Ajouter à la session

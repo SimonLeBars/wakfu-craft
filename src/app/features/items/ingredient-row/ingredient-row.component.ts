@@ -4,11 +4,12 @@ import { RecipeIngredient, Recipe } from '@electron';
 import { ItemService } from '../../../core/services/item.service';
 import { PriceService } from '../../../core/services/price.service';
 import { ProfitabilityService } from '../../../core/services/profitability.service';
+import { RarityColorPipe, RarityLabelPipe } from '../../../shared/pipes/rarity.pipe';
 
 @Component({
   selector: 'app-ingredient-row',
   // Auto-référence : Angular Ivy résout les imports de façon différée
-  imports: [DecimalPipe, IngredientRowComponent],
+  imports: [DecimalPipe, IngredientRowComponent, RarityColorPipe, RarityLabelPipe],
   templateUrl: './ingredient-row.component.html',
   styleUrl: './ingredient-row.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

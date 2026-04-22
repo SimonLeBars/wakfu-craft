@@ -13,3 +13,11 @@ body {
   color: var(--text);
   font-family: sans-serif;
 }
+
+.badge-rarity {
+  font-size: 0.7rem;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+}
