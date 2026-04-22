@@ -56,7 +56,55 @@ export class DatabaseService {
     console.log(`[DB] Ouverture de la base : ${dbPath}`);
     this.db = new Database(dbPath);
     this.db.pragma('journal_mode = WAL');
+    this.registerFunctions();
     this.runMigrations();
+  }
+
+  private registerFunctions(): void {
+    this.db.function('fuzzy_match', (nameJson: string, query: string, lang: string): number => {
+      let nameStr: string;
+      try {
+        const nameObj = JSON.parse(nameJson) as Record<string, string>;
+        nameStr = this.normalize(nameObj[lang] ?? '');
+      } catch {
+        return 0;
+      }
+      const nameWords = nameStr.split(/\s+/).filter(Boolean);
+      const queryWords = this.normalize(query).split(/\s+/).filter(Boolean);
+
+      for (const qWord of queryWords) {
+        const threshold = qWord.length <= 3 ? 0 : qWord.length <= 6 ? 1 : 2;
+        const matched = nameWords.some(
+          nWord =>
+            Math.abs(nWord.length - qWord.length) <= threshold + 1 &&
+            this.levenshtein(qWord, nWord) <= threshold,
+        );
+        if (!matched) return 0;
+      }
+      return 1;
+    });
+  }
+
+  private normalize(s: string): string {
+    return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+
+  private levenshtein(a: string, b: string): number {
+    const m = a.length, n = b.length;
+    if (m === 0) return n;
+    if (n === 0) return m;
+    let prev = Array.from({ length: n + 1 }, (_, j) => j);
+    for (let i = 1; i <= m; i++) {
+      const curr: number[] = [i];
+      for (let j = 1; j <= n; j++) {
+        curr[j] =
+          a[i - 1] === b[j - 1]
+            ? prev[j - 1]
+            : 1 + Math.min(prev[j], curr[j - 1], prev[j - 1]);
+      }
+      prev = curr;
+    }
+    return prev[n];
   }
 
   private runMigrations(): void {
@@ -202,24 +250,38 @@ export class DatabaseService {
   }
 
   searchItems(query: string, lang: string = 'fr'): WakfuItem[] {
-    const rows = this.db.prepare(`
-      SELECT i.id, i.name, i.type, i.level,
-             COALESCE(
-             json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
-             json_extract(i.raw_data, '$.definition.rarity'),
-             0
-           ) AS rarity
+    const rarityExpr = `COALESCE(
+      json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
+      json_extract(i.raw_data, '$.definition.rarity'),
+      0
+    ) AS rarity`;
+
+    const likeRows = this.db.prepare(`
+      SELECT i.id, i.name, i.type, i.level, ${rarityExpr}
       FROM items i
       WHERE json_extract(i.name, '$.${lang}') LIKE @query
       ORDER BY i.level ASC
       LIMIT 50
     `).all({ query: `%${query}%` }) as ItemRow[];
 
-    return rows.map(row => ({
+    let fuzzyRows: ItemRow[] = [];
+    if (likeRows.length < 50) {
+      const likeIds = new Set(likeRows.map(r => r.id));
+      fuzzyRows = (this.db.prepare(`
+        SELECT i.id, i.name, i.type, i.level, ${rarityExpr}
+        FROM items i
+        WHERE fuzzy_match(i.name, @query, @lang) = 1
+        ORDER BY i.level ASC
+        LIMIT 50
+      `).all({ query, lang }) as ItemRow[]).filter(r => !likeIds.has(r.id));
+    }
+
+    const hasRecipeStmt = this.db.prepare('SELECT 1 FROM recipes WHERE result_item_id = ? LIMIT 1');
+    return [...likeRows, ...fuzzyRows].slice(0, 50).map(row => ({
       ...row,
       name:      JSON.parse(row.name) as Record<string, string>,
       rarity:    row.rarity ?? 0,
-      hasRecipe: !!this.db.prepare('SELECT 1 FROM recipes WHERE result_item_id = ?').get(row.id),
+      hasRecipe: !!hasRecipeStmt.get(row.id),
     }));
   }
 
