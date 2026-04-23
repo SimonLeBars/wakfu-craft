@@ -1,13 +1,13 @@
 {
   "name": "wakfu-craft",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "dist-electron/main.js",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "electron:compile": "tsc -p tsconfig.electron.json && cp -r electron/database/migrations dist-electron/database/migrations",
+    "electron:compile": "tsc -p tsconfig.electron.json && node -e \"const{cpSync}=require('fs');cpSync('electron/database/migrations','dist-electron/database/migrations',{recursive:true,force:true})\"",
     "electron:dev": "concurrently --kill-others \"ng serve\" \"wait-on http://localhost:4200 && cross-env NODE_ENV=development electron .\"",
     "electron:build": "ng build --base-href ./ && npm run electron:compile && electron-builder",
     "electron:rebuild": "electron-rebuild -f -w better-sqlite3",
