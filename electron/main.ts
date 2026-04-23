@@ -166,14 +166,17 @@ function registerIpcHandlers(db: DatabaseService): void {
 
   ipcMain.handle('sessions:getAll', () => db.getSessions());
   ipcMain.handle('sessions:create', (_e, name: string) => db.createSession(name));
+  ipcMain.handle('sessions:rename', (_e, id: number, name: string) => db.renameSession(id, name));
   ipcMain.handle('sessions:delete', (_e, id: number) => db.deleteSession(id));
   ipcMain.handle('sessions:getItems', (_e, id: number) => db.getSessionItems(id));
-  ipcMain.handle('sessions:addItem', (_e, sessionId: number, itemId: number, qty: number) =>
-    db.addItemToSession(sessionId, itemId, qty));
+  ipcMain.handle('sessions:addItem', (_e, sessionId: number, itemId: number, qty: number, parentId: number | null) =>
+    db.addItemToSession(sessionId, itemId, qty, parentId));
   ipcMain.handle('sessions:removeItem', (_e, sessionItemId: number) =>
     db.removeItemFromSession(sessionItemId));
   ipcMain.handle('sessions:updateQty', (_e, sessionItemId: number, qty: number) =>
     db.updateSessionItemQuantity(sessionItemId, qty));
   ipcMain.handle('sessions:getShoppingList', (_e, sessionId: number) =>
     db.getShoppingList(sessionId));
+  ipcMain.handle('sessions:getCraftOrder', (_e, sessionId: number) =>
+    db.getCraftOrder(sessionId));
 }

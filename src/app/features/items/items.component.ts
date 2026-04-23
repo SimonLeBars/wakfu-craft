@@ -1,9 +1,9 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ItemService } from '../../core/services/item.service';
 import { PriceService } from '../../core/services/price.service';
-import { WakfuItem } from '@electron';
+import { WakfuItem, Recipe } from '@electron';
 import { ProfitabilityComponent } from './profitability/profitability.component';
 import { SessionService } from '../../core/services/session.service';
 import { PriceHistoryComponent } from './price-history/price-history.component';
@@ -24,6 +24,35 @@ export class ItemsComponent {
 
   searchQuery = '';
 
+  // ── Dialog d'ajout à la session ────────────────────────────────────────────
+  protected readonly addDialogVisible  = signal(false);
+  protected readonly addDialogQuantity = signal(1);
+
+  protected readonly craftSubItems = computed(() => {
+    const recipe   = this.itemService.selectedRecipe();
+    const craftIds = this.itemService.craftModeIngredients();
+    const subRecs  = this.itemService.subRecipes();
+    if (!recipe) return [];
+
+    const result: typeof recipe.ingredients = [];
+    const visited = new Set<number>();
+
+    const collect = (ingredients: typeof recipe.ingredients) => {
+      for (const ing of ingredients) {
+        if (!craftIds.has(ing.item_id) || visited.has(ing.item_id)) continue;
+        visited.add(ing.item_id);
+        const sub = subRecs[ing.item_id];
+        if (sub) collect(sub.ingredients);
+        result.push(ing);
+      }
+    };
+
+    collect(recipe.ingredients);
+    return result;
+  });
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
   onSearch(): void {
     this.itemService.search(this.searchQuery);
   }
@@ -41,13 +70,60 @@ export class ItemsComponent {
     }
   }
 
-  async onAddToSession(): Promise<void> {
+  onOpenAddDialog(): void {
+    this.addDialogQuantity.set(1);
+    this.addDialogVisible.set(true);
+  }
+
+  onCancelDialog(): void {
+    this.addDialogVisible.set(false);
+  }
+
+  async onConfirmAdd(): Promise<void> {
     const item = this.itemService.selectedItem();
     if (!item) return;
+
+    const qty      = this.addDialogQuantity();
+    const recipe   = this.itemService.selectedRecipe();
+    const craftIds = this.itemService.craftModeIngredients();
+    const subRecs  = this.itemService.subRecipes();
+
     if (this.sessionService.sessions().length === 0) {
       await this.sessionService.createSession('Ma session');
     }
     await this.sessionService.loadSessions();
-    await this.sessionService.addItem(item.id, 1);
+
+    await this.addItemRecursive(item.id, qty, craftIds, recipe, subRecs, new Set(), null);
+    await this.sessionService.refreshData();
+
+    this.addDialogVisible.set(false);
+  }
+
+  private async addItemRecursive(
+    itemId:              number,
+    quantity:            number,
+    craftIds:            Set<number>,
+    recipe:              Recipe | null,
+    subRecs:             Partial<Record<number, Recipe | null>>,
+    visited:             Set<number>,
+    parentSessionItemId: number | null,
+  ): Promise<void> {
+    const sessionItemId = await this.sessionService.addItem(itemId, quantity, parentSessionItemId);
+
+    if (!recipe) return;
+
+    for (const ing of recipe.ingredients) {
+      if (!craftIds.has(ing.item_id) || visited.has(ing.item_id)) continue;
+      visited.add(ing.item_id);
+      await this.addItemRecursive(
+        ing.item_id,
+        ing.quantity * quantity,
+        craftIds,
+        subRecs[ing.item_id] ?? null,
+        subRecs,
+        visited,
+        sessionItemId,
+      );
+    }
   }
 }

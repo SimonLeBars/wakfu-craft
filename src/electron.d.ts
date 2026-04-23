@@ -37,6 +37,7 @@ export interface SessionItem {
   item_name:       Record<string, string>;
   item_level:      number;
   rarity:          number;
+  parent_item_id:  number | null;
 }
 
 export interface ShoppingItem {
@@ -88,14 +89,16 @@ export interface ElectronAPI {
     capture:        (region: CaptureRegion) => Promise<{ price: number | null; debugImage: string; rawText: string } | null>;
   };
   sessions: {
-    getAll:          ()                                              => Promise<CraftSession[]>;
-    create:          (name: string)                                  => Promise<number>;
-    delete:          (id: number)                                    => Promise<void>;
-    getItems:        (id: number)                                    => Promise<SessionItem[]>;
-    addItem:         (sessionId: number, itemId: number, qty: number) => Promise<void>;
-    removeItem:      (sessionItemId: number)                         => Promise<void>;
-    updateQty:       (sessionItemId: number, qty: number)            => Promise<void>;
-    getShoppingList: (sessionId: number)                             => Promise<ShoppingItem[]>;
+    getAll:          ()                                                                                     => Promise<CraftSession[]>;
+    create:          (name: string)                                                                         => Promise<number>;
+    rename:          (id: number, name: string)                                                             => Promise<void>;
+    delete:          (id: number)                                                                           => Promise<void>;
+    getItems:        (id: number)                                                                           => Promise<SessionItem[]>;
+    addItem:         (sessionId: number, itemId: number, qty: number, parentId: number | null) => Promise<number>;
+    removeItem:      (sessionItemId: number)                                                                => Promise<void>;
+    updateQty:       (sessionItemId: number, qty: number)                                                  => Promise<void>;
+    getShoppingList: (sessionId: number)                                                                    => Promise<ShoppingItem[]>;
+    getCraftOrder:   (sessionId: number)                                                                    => Promise<SessionItem[]>;
   };
 }
 

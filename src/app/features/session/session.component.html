@@ -4,7 +4,7 @@
   <div class="sessions-panel">
     <div class="panel-header">
       <h2>Sessions</h2>
-      <button class="btn-icon" (click)="showNewSession.set(!showNewSession())">＋</button>
+      <button class="btn-icon" (click)="showNewSession.set(!showNewSession())" aria-label="Nouvelle session">＋</button>
     </div>
 
     @if (showNewSession()) {
@@ -26,15 +26,39 @@
       @for (session of sessionService.sessions(); track session.id) {
         <div class="session-item"
              [class.active]="sessionService.activeSession()?.id === session.id"
-             (click)="sessionService.selectSession(session)">
+             (click)="renamingId() !== session.id && sessionService.selectSession(session)">
+
           <div class="session-item__info">
-            <span class="session-item__name">{{ session.name }}</span>
-            <span class="session-item__count">{{ session.item_count }} craft(s)</span>
+            @if (renamingId() === session.id) {
+              <input
+                class="rename-input"
+                [ngModel]="renameValue()"
+                (ngModelChange)="renameValue.set($event)"
+                (keyup.enter)="onConfirmRename()"
+                (keyup.escape)="onCancelRename($event)"
+                (blur)="onConfirmRename()"
+                (click)="$event.stopPropagation()"
+                aria-label="Nouveau nom de la session"
+                autofocus
+              />
+            } @else {
+              <span class="session-item__name">{{ session.name }}</span>
+              <span class="session-item__count">{{ session.item_count }} item(s)</span>
+            }
           </div>
-          <button class="btn-delete"
-            (click)="$event.stopPropagation(); sessionService.deleteSession(session.id)">
-            🗑️
-          </button>
+
+          <div class="session-item__actions">
+            @if (renamingId() !== session.id) {
+              <button class="btn-icon-sm"
+                      (click)="onStartRename(session, $event)"
+                      aria-label="Renommer la session">✏️</button>
+            }
+            <button class="btn-delete"
+              (click)="$event.stopPropagation(); sessionService.deleteSession(session.id)"
+              aria-label="Supprimer la session">
+              🗑️
+            </button>
+          </div>
         </div>
       }
 
@@ -43,10 +67,10 @@
       }
     </div>
 
-    <!-- Items craftés dans la session active -->
+    <!-- Items planifiés dans la session active -->
     @if (sessionService.activeSession()) {
       <div class="session-crafts">
-        <h3>Crafts planifiés</h3>
+        <h3>Planifiés</h3>
         @for (item of sessionService.sessionItems(); track item.session_item_id) {
           <div class="craft-item">
             <span class="craft-item__name">
@@ -62,7 +86,8 @@
                 (change)="onUpdateQty(item.session_item_id, $any($event.target).value)"
               />
               <button class="btn-delete"
-                (click)="onRemoveItem(item.session_item_id)">✕</button>
+                (click)="onRemoveItem(item.session_item_id)"
+                aria-label="Retirer l'item">✕</button>
             </div>
           </div>
         }
@@ -98,12 +123,12 @@
                 </div>
               </div>
               <div class="shopping-item__right">
-                <span class="shopping-item__qty">× {{ item.total_quantity }}</span>
                 @if (priceService.getPrice(item.item_id); as price) {
-                  <span class="shopping-item__cost">
-                    {{ price * item.total_quantity | number:'1.0-0' }} k
-                  </span>
+                  <span class="shopping-item__unit-price">{{ price | number:'1.0-0' }} k</span>
+                  <span class="shopping-item__qty">× {{ item.total_quantity }}</span>
+                  <span class="shopping-item__cost">{{ price * item.total_quantity | number:'1.0-0' }} k</span>
                 } @else {
+                  <span class="shopping-item__qty">× {{ item.total_quantity }}</span>
                   <span class="shopping-item__cost missing">Prix manquant</span>
                 }
               </div>
@@ -115,6 +140,81 @@
         <div class="shopping-total">
           <span>Total estimé</span>
           <span class="shopping-total__value">{{ totalCost() | number:'1.0-0' }} k</span>
+        </div>
+
+        <!-- Analyse de rentabilité -->
+        <div class="session-profitability">
+          <h3 class="session-profitability__title">Analyse de rentabilité</h3>
+
+          @if (missingCounts().ingredients > 0 || missingCounts().sell > 0) {
+            <div class="profitability-warning" role="alert">
+              ⚠️ Prix manquants — calcul incomplet
+            </div>
+          }
+
+          <div class="breakdown">
+            <div class="breakdown__row">
+              <span class="breakdown__label">Coût des ressources</span>
+              <span class="breakdown__value">{{ totalCost() | number:'1.0-0' }} k</span>
+            </div>
+            <div class="breakdown__row">
+              <span class="breakdown__label">Prix de vente total</span>
+              <span class="breakdown__value" [class.missing]="totalSellPrice() === 0">
+                {{ totalSellPrice() > 0 ? (totalSellPrice() | number:'1.0-0') + ' k' : 'Non renseigné' }}
+              </span>
+            </div>
+            <div class="breakdown__divider"></div>
+            <div class="breakdown__row breakdown__row--total">
+              <span class="breakdown__label">Marge brute</span>
+              <span class="breakdown__value"
+                    [class.positive]="grossMargin() > 0"
+                    [class.negative]="grossMargin() < 0">
+                {{ grossMargin() > 0 ? '+' : '' }}{{ grossMargin() | number:'1.0-0' }} k
+              </span>
+            </div>
+            <div class="breakdown__row breakdown__row--total">
+              <span class="breakdown__label">Rentabilité</span>
+              <span class="breakdown__value"
+                    [class.positive]="marginPercent() > 0"
+                    [class.negative]="marginPercent() < 0">
+                {{ marginPercent() > 0 ? '+' : '' }}{{ marginPercent() | number:'1.0-1' }} %
+              </span>
+            </div>
+          </div>
+
+          <div class="verdict"
+               [class.verdict--positive]="grossMargin() > 0"
+               [class.verdict--negative]="grossMargin() < 0"
+               [class.verdict--neutral]="grossMargin() === 0"
+               aria-live="polite">
+            @if (grossMargin() > 0) {
+              ✅ Session rentable
+            } @else if (grossMargin() < 0) {
+              ❌ Session à perte ({{ grossMargin() | number:'1.0-0' }} k)
+            } @else {
+              ➖ Session à l'équilibre
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Ordre de craft -->
+      @if (sessionService.craftOrder().length > 0) {
+        <div class="craft-order">
+          <h3 class="craft-order__title">Ordre de craft</h3>
+          <ol class="craft-order__list" aria-label="Ordre des crafts">
+            @for (step of sessionService.craftOrder(); track step.session_item_id) {
+              <li class="craft-order__item">
+                <span class="craft-order__num">{{ $index + 1 }}</span>
+                <span class="craft-order__info">
+                  <span class="craft-order__name">{{ step.item_name['fr'] }}</span>
+                  <span class="badge-rarity" [style.color]="step.rarity | rarityColor">{{ step.rarity | rarityLabel }}</span>
+                  <span class="craft-order__level">Niv. {{ step.item_level }}</span>
+                </span>
+                <span class="craft-order__qty">× {{ step.craft_quantity }}</span>
+              </li>
+            }
+          </ol>
         </div>
       }
     }

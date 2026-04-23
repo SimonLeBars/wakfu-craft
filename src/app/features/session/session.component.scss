@@ -48,9 +48,28 @@
 
   &.active { @include active-item; }
 
-  &__info  { display: flex; flex-direction: column; gap: 2px; }
-  &__name  { font-weight: 500; }
-  &__count { font-size: 0.75rem; color: var(--text-dim); }
+  &__info    { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  &__name    { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &__count   { font-size: 0.75rem; color: var(--text-dim); }
+  &__actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+}
+
+.rename-input {
+  width: 100%;
+  padding: 4px 8px;
+  @include input-base;
+  font-size: 0.9rem;
+}
+
+.btn-icon-sm {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 4px;
+  line-height: 1;
+  &:hover { color: var(--accent); }
 }
 
 .session-crafts {
@@ -70,8 +89,8 @@
   padding: 8px 0;
   border-bottom: 1px solid var(--border-light);
 
-  &__name     { font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
-  &__controls { display: flex; align-items: center; gap: 6px; }
+  &__name     { font-size: 0.9rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  &__controls { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 }
 
 .qty-input {
@@ -118,6 +137,14 @@
 
   &__right { display: flex; align-items: center; gap: 16px; }
 
+  &__unit-price {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    min-width: 60px;
+    text-align: right;
+  }
+
   &__qty {
     font-size: 1rem;
     font-weight: 700;
@@ -154,6 +181,133 @@
   align-items: center;
   justify-content: center;
   color: #444;
+}
+
+// ── Boutons ─────────────────────────────────────────────────────────────────
+
+// ── Analyse de rentabilité ───────────────────────────────────────────────────
+
+.session-profitability {
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border);
+
+  &__title {
+    @include section-title;
+    margin: 0 0 12px;
+  }
+}
+
+.profitability-warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &__row {
+    @include flex-between;
+    font-size: 0.95rem;
+    &--total { font-size: 1.05rem; font-weight: 600; }
+  }
+
+  &__label { color: var(--text-label); }
+
+  &__value {
+    font-family: monospace;
+    font-size: 1rem;
+    &.positive { color: var(--success); }
+    &.negative { color: var(--error); }
+    &.missing  { color: var(--text-muted); font-style: italic; }
+  }
+
+  &__divider {
+    border-top: 1px solid var(--border);
+    margin: 4px 0;
+  }
+}
+
+.verdict {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+
+  &--positive { background: var(--success-bg); color: var(--success); }
+  &--negative { background: var(--error-bg);   color: var(--error); }
+  &--neutral  { background: #2a2a2a;            color: var(--text-dim); }
+}
+
+// ── Ordre de craft ───────────────────────────────────────────────────────────
+
+.craft-order {
+  padding: 16px 24px 24px;
+  border-top: 1px solid var(--border);
+
+  &__title {
+    @include section-title;
+    margin: 0 0 12px;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg-surface);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+  }
+
+  &__num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  &__name  { font-weight: 500; font-size: 0.9rem; }
+  &__level { font-size: 0.75rem; color: var(--text-dim); }
+
+  &__qty {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 0.95rem;
+    white-space: nowrap;
+  }
 }
 
 // ── Boutons ─────────────────────────────────────────────────────────────────

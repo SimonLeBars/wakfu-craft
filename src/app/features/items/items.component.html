@@ -60,7 +60,7 @@
         <span class="level-badge">Niveau {{ itemService.selectedItem()!.level }}</span>
         <span class="badge-rarity" [style.color]="itemService.selectedItem()!.rarity | rarityColor">{{ itemService.selectedItem()!.rarity | rarityLabel }}</span>
         @if (itemService.selectedRecipe()) {
-          <button class="btn-add-session" (click)="onAddToSession()">
+          <button class="btn-add-session" (click)="onOpenAddDialog()">
             🛒 Ajouter à la session
           </button>
         }
@@ -118,3 +118,59 @@
   </div>
 
 </div>
+
+<!-- ── Dialog d'ajout à la session ─────────────────────────────────────────── -->
+@if (addDialogVisible()) {
+  <div class="dialog-overlay" (click)="onCancelDialog()" role="presentation">
+    <div class="dialog"
+         (click)="$event.stopPropagation()"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="add-dialog-title">
+
+      <h3 class="dialog-title" id="add-dialog-title">Ajouter à la session</h3>
+
+      <div class="dialog-item-header">
+        <span class="dialog-item-name">{{ itemService.selectedItem()!.name['fr'] }}</span>
+        <div class="dialog-item-meta">
+          <span class="level">Niv. {{ itemService.selectedItem()!.level }}</span>
+          <span class="badge-rarity" [style.color]="itemService.selectedItem()!.rarity | rarityColor">
+            {{ itemService.selectedItem()!.rarity | rarityLabel }}
+          </span>
+        </div>
+      </div>
+
+      <div class="dialog-qty-row">
+        <label for="dialog-qty" class="dialog-label">Quantité</label>
+        <input
+          id="dialog-qty"
+          type="number"
+          min="1"
+          class="qty-input"
+          [ngModel]="addDialogQuantity()"
+          (ngModelChange)="addDialogQuantity.set(+$event || 1)"
+          autofocus
+        />
+      </div>
+
+      @if (craftSubItems().length > 0) {
+        <div class="dialog-sub-crafts">
+          <p class="dialog-label">Sous-items à crafter :</p>
+          @for (ing of craftSubItems(); track ing.item_id) {
+            <div class="dialog-sub-item">
+              <span class="dialog-sub-item__name">{{ ing.item_name['fr'] }}</span>
+              <span class="badge-rarity" [style.color]="ing.rarity | rarityColor">
+                {{ ing.rarity | rarityLabel }}
+              </span>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="dialog-actions">
+        <button class="btn-secondary" (click)="onCancelDialog()">Annuler</button>
+        <button class="btn-primary" (click)="onConfirmAdd()">Ajouter</button>
+      </div>
+    </div>
+  </div>
+}

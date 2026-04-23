@@ -43,8 +43,9 @@ interface IngredientRow     { quantity: number; item_id: number; item_name: stri
 interface PriceRow          { price: number }
 interface PriceItemRow      { item_id: number; price: number }
 interface RecipeIdRow       { id: number }
-interface SessionItemDbRow  { session_item_id: number; craft_quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null }
+interface SessionItemDbRow  { session_item_id: number; craft_quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null; parent_item_id: number | null }
 interface ExistingItemRow   { id: number; quantity: number }
+interface IdRow             { id: number }
 interface ShoppingIngRow    { quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null }
 
 
@@ -349,6 +350,10 @@ export class DatabaseService {
     `).all({ item_id: itemId }) as PriceEntry[];
   }
 
+  renameSession(id: number, name: string): void {
+    this.db.prepare('UPDATE craft_sessions SET name = ? WHERE id = ?').run(name, id);
+  }
+
   createSession(name: string): number {
     const result = this.db.prepare('INSERT INTO craft_sessions (name) VALUES (?)').run(name);
     return result.lastInsertRowid as number;
@@ -367,7 +372,7 @@ export class DatabaseService {
     this.db.prepare('DELETE FROM craft_sessions WHERE id = ?').run(sessionId);
   }
 
-  addItemToSession(sessionId: number, itemId: number, quantity: number): void {
+  addItemToSession(sessionId: number, itemId: number, quantity: number, parentId: number | null = null): number {
     const existing = this.db.prepare(`
       SELECT id, quantity FROM craft_session_items WHERE session_id = ? AND item_id = ?
     `).get(sessionId, itemId) as ExistingItemRow | undefined;
@@ -375,44 +380,137 @@ export class DatabaseService {
     if (existing) {
       this.db.prepare('UPDATE craft_session_items SET quantity = ? WHERE id = ?')
         .run(existing.quantity + quantity, existing.id);
+      return existing.id;
     } else {
-      this.db.prepare('INSERT INTO craft_session_items (session_id, item_id, quantity) VALUES (?, ?, ?)')
-        .run(sessionId, itemId, quantity);
+      const result = this.db.prepare(
+        'INSERT INTO craft_session_items (session_id, item_id, quantity, parent_item_id) VALUES (?, ?, ?, ?)',
+      ).run(sessionId, itemId, quantity, parentId);
+      return result.lastInsertRowid as number;
     }
   }
 
   removeItemFromSession(sessionItemId: number): void {
-    this.db.prepare('DELETE FROM craft_session_items WHERE id = ?').run(sessionItemId);
+    // Supprime récursivement les sous-crafts avant l'item parent
+    const deleteRecursive = (id: number) => {
+      const children = this.db.prepare(
+        'SELECT id FROM craft_session_items WHERE parent_item_id = ?',
+      ).all(id) as IdRow[];
+      for (const child of children) deleteRecursive(child.id);
+      this.db.prepare('DELETE FROM craft_session_items WHERE id = ?').run(id);
+    };
+    deleteRecursive(sessionItemId);
   }
 
   updateSessionItemQuantity(sessionItemId: number, quantity: number): void {
+    const current = this.db.prepare('SELECT quantity FROM craft_session_items WHERE id = ?')
+      .get(sessionItemId) as { quantity: number } | undefined;
+    if (!current) return;
+
+    const oldQty = current.quantity;
     this.db.prepare('UPDATE craft_session_items SET quantity = ? WHERE id = ?').run(quantity, sessionItemId);
+
+    // Propage le changement proportionnellement aux sous-items
+    const updateChildren = (parentId: number) => {
+      const children = this.db.prepare(
+        'SELECT id, quantity FROM craft_session_items WHERE parent_item_id = ?',
+      ).all(parentId) as ExistingItemRow[];
+      for (const child of children) {
+        const newChildQty = Math.max(1, Math.round((child.quantity * quantity) / oldQty));
+        this.db.prepare('UPDATE craft_session_items SET quantity = ? WHERE id = ?').run(newChildQty, child.id);
+        updateChildren(child.id);
+      }
+    };
+    updateChildren(sessionItemId);
   }
 
+  // Retourne uniquement les items de premier niveau (pas de parent) — pour la section "Planifiés"
   getSessionItems(sessionId: number): SessionItem[] {
-    return (this.db.prepare(`
-      SELECT si.id AS session_item_id, si.quantity AS craft_quantity,
-             i.id AS item_id, i.name AS item_name, i.level AS item_level,
-             COALESCE(
-               json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
-               json_extract(i.raw_data, '$.definition.rarity'),
-               0
-             ) AS rarity
-      FROM craft_session_items si
-      JOIN items i ON i.id = si.item_id
-      WHERE si.session_id = ? ORDER BY i.level ASC
-    `).all(sessionId) as SessionItemDbRow[]).map(row => ({
+    return this.mapSessionItemRows(
+      this.db.prepare(`
+        SELECT si.id AS session_item_id, si.quantity AS craft_quantity,
+               i.id AS item_id, i.name AS item_name, i.level AS item_level,
+               si.parent_item_id,
+               COALESCE(
+                 json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
+                 json_extract(i.raw_data, '$.definition.rarity'),
+                 0
+               ) AS rarity
+        FROM craft_session_items si
+        JOIN items i ON i.id = si.item_id
+        WHERE si.session_id = ? AND si.parent_item_id IS NULL
+        ORDER BY i.level ASC
+      `).all(sessionId) as SessionItemDbRow[],
+    );
+  }
+
+  // Retourne TOUS les items de la session, toutes profondeurs confondues
+  private getAllSessionItems(sessionId: number): SessionItem[] {
+    return this.mapSessionItemRows(
+      this.db.prepare(`
+        SELECT si.id AS session_item_id, si.quantity AS craft_quantity,
+               i.id AS item_id, i.name AS item_name, i.level AS item_level,
+               si.parent_item_id,
+               COALESCE(
+                 json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
+                 json_extract(i.raw_data, '$.definition.rarity'),
+                 0
+               ) AS rarity
+        FROM craft_session_items si
+        JOIN items i ON i.id = si.item_id
+        WHERE si.session_id = ?
+      `).all(sessionId) as SessionItemDbRow[],
+    );
+  }
+
+  private mapSessionItemRows(rows: SessionItemDbRow[]): SessionItem[] {
+    return rows.map(row => ({
       ...row,
-      item_name: JSON.parse(row.item_name) as Record<string, string>,
-      rarity:    row.rarity ?? 0,
+      item_name:      JSON.parse(row.item_name) as Record<string, string>,
+      rarity:         row.rarity ?? 0,
+      parent_item_id: row.parent_item_id ?? null,
     }));
   }
 
+  // Retourne les items craft dans l'ordre topologique (sous-items avant leurs parents)
+  getCraftOrder(sessionId: number): SessionItem[] {
+    const all = this.getAllSessionItems(sessionId);
+
+    const childrenOf = new Map<number | null, SessionItem[]>();
+    for (const item of all) {
+      const p = item.parent_item_id;
+      if (!childrenOf.has(p)) childrenOf.set(p, []);
+      childrenOf.get(p)!.push(item);
+    }
+
+    const result: SessionItem[] = [];
+    const visited = new Set<number>();
+
+    const dfs = (item: SessionItem) => {
+      if (visited.has(item.session_item_id)) return;
+      visited.add(item.session_item_id);
+      for (const child of childrenOf.get(item.session_item_id) ?? []) dfs(child);
+      result.push(item);
+    };
+
+    for (const root of childrenOf.get(null) ?? []) dfs(root);
+    return result;
+  }
+
   getShoppingList(sessionId: number): ShoppingItem[] {
-    const sessionItems = this.getSessionItems(sessionId);
+    const allItems = this.getAllSessionItems(sessionId);
+    // Tous les items en session sont craftés — leurs item_id sont exclus de la liste de courses
+    const craftItemIds = new Set(allItems.map(si => si.item_id));
     const aggregated: Record<number, ShoppingItem> = {};
 
-    for (const si of sessionItems) {
+    const addToList = (itemId: number, itemName: Record<string, string>, itemLevel: number, rarity: number, qty: number) => {
+      if (aggregated[itemId]) {
+        aggregated[itemId].total_quantity += qty;
+      } else {
+        aggregated[itemId] = { item_id: itemId, item_name: itemName, item_level: itemLevel, rarity, total_quantity: qty };
+      }
+    };
+
+    for (const si of allItems) {
       const recipe = this.db.prepare('SELECT id FROM recipes WHERE result_item_id = ?')
         .get(si.item_id) as RecipeIdRow | undefined;
       if (!recipe) continue;
@@ -428,18 +526,14 @@ export class DatabaseService {
       `).all(recipe.id) as ShoppingIngRow[];
 
       for (const ing of ingredients) {
-        const totalQty = ing.quantity * si.craft_quantity;
-        if (aggregated[ing.item_id]) {
-          aggregated[ing.item_id].total_quantity += totalQty;
-        } else {
-          aggregated[ing.item_id] = {
-            item_id:        ing.item_id,
-            item_name:      JSON.parse(ing.item_name) as Record<string, string>,
-            item_level:     ing.item_level,
-            rarity:         ing.rarity ?? 0,
-            total_quantity: totalQty,
-          };
-        }
+        if (craftItemIds.has(ing.item_id)) continue;
+        addToList(
+          ing.item_id,
+          JSON.parse(ing.item_name) as Record<string, string>,
+          ing.item_level,
+          ing.rarity ?? 0,
+          ing.quantity * si.craft_quantity,
+        );
       }
     }
 

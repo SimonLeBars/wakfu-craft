@@ -3,15 +3,15 @@ import { CraftSession, SessionItem, ShoppingItem } from '@electron';
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
-  readonly sessions        = signal<CraftSession[]>([]);
-  readonly activeSession   = signal<CraftSession | null>(null);
-  readonly sessionItems    = signal<SessionItem[]>([]);
-  readonly shoppingList    = signal<ShoppingItem[]>([]);
+  readonly sessions      = signal<CraftSession[]>([]);
+  readonly activeSession = signal<CraftSession | null>(null);
+  readonly sessionItems  = signal<SessionItem[]>([]);
+  readonly shoppingList  = signal<ShoppingItem[]>([]);
+  readonly craftOrder    = signal<SessionItem[]>([]);
 
   async loadSessions(): Promise<void> {
     const list = await window.electronAPI.sessions.getAll();
     this.sessions.set(list);
-    // Active automatiquement la première session si aucune n'est active
     if (!this.activeSession() && list.length > 0) {
       await this.selectSession(list[0]);
     }
@@ -35,11 +35,31 @@ export class SessionService {
     await this.loadSessions();
   }
 
-  async addItem(itemId: number, quantity: number): Promise<void> {
+  // Ajoute un item en session et retourne son session_item_id.
+  // L'appelant doit appeler refreshData() lorsque tous les ajouts sont terminés.
+  async addItem(
+    itemId:   number,
+    quantity: number,
+    parentId: number | null = null,
+  ): Promise<number> {
     const session = this.activeSession();
-    if (!session) return;
-    await window.electronAPI.sessions.addItem(session.id, itemId, quantity);
+    if (!session) return -1;
+    return window.electronAPI.sessions.addItem(session.id, itemId, quantity, parentId);
+  }
+
+  async refreshData(): Promise<void> {
     await this.refreshSessionData();
+  }
+
+  async renameSession(id: number, name: string): Promise<void> {
+    await window.electronAPI.sessions.rename(id, name);
+    const list = await window.electronAPI.sessions.getAll();
+    this.sessions.set(list);
+    const active = this.activeSession();
+    if (active?.id === id) {
+      const updated = list.find(s => s.id === id);
+      if (updated) this.activeSession.set(updated);
+    }
   }
 
   async removeItem(sessionItemId: number): Promise<void> {
@@ -56,11 +76,13 @@ export class SessionService {
   private async refreshSessionData(): Promise<void> {
     const session = this.activeSession();
     if (!session) return;
-    const [items, shopping] = await Promise.all([
+    const [items, shopping, craftOrder] = await Promise.all([
       window.electronAPI.sessions.getItems(session.id),
       window.electronAPI.sessions.getShoppingList(session.id),
+      window.electronAPI.sessions.getCraftOrder(session.id),
     ]);
     this.sessionItems.set(items);
     this.shoppingList.set(shopping);
+    this.craftOrder.set(craftOrder);
   }
 }
