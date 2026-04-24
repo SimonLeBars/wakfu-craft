@@ -68,12 +68,4 @@ export class ItemService {
       }
     }
   }
-
-  clearSelection(): void {
-    this.selectedItem.set(null);
-    this.selectedRecipe.set(null);
-    this.searchResults.set([]);
-    this.craftModeIngredients.set(new Set());
-    this.subRecipes.set({});
-  }
 }

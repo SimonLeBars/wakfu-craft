@@ -160,6 +160,10 @@ function registerIpcHandlers(db: DatabaseService): void {
     return db.getLatestPrices(itemIds);
   });
 
+  ipcMain.handle('prices:getLatestPriceEntries', (_event, itemIds: number[]) => {
+    return db.getLatestPriceEntries(itemIds);
+  });
+
   ipcMain.handle('prices:getHistory', (_event, itemId: number) => {
     return db.getPriceHistory(itemId);
   });

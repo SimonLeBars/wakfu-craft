@@ -1,15 +1,16 @@
 import { Component, input, inject, signal, ChangeDetectionStrategy } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { DecimalPipe, DatePipe } from '@angular/common';
 import { RecipeIngredient, Recipe } from '@electron';
 import { ItemService } from '../../../core/services/item.service';
 import { PriceService } from '../../../core/services/price.service';
 import { ProfitabilityService } from '../../../core/services/profitability.service';
 import { RarityColorPipe, RarityLabelPipe } from '../../../shared/pipes/rarity.pipe';
+import { CopyBtnComponent } from '../../../shared/components/copy-btn.component';
 
 @Component({
   selector: 'app-ingredient-row',
   // Auto-référence : Angular Ivy résout les imports de façon différée
-  imports: [DecimalPipe, IngredientRowComponent, RarityColorPipe, RarityLabelPipe],
+  imports: [DecimalPipe, DatePipe, IngredientRowComponent, RarityColorPipe, RarityLabelPipe, CopyBtnComponent],
   templateUrl: './ingredient-row.component.html',
   styleUrl: './ingredient-row.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -82,7 +82,8 @@ export interface ElectronAPI {
   searchItems:       (query: string, lang?: string) => Promise<WakfuItem[]>;
   getRecipeByItemId: (itemId: number) => Promise<Recipe | null>;
   setPrice:        (itemId: number, price: number) => Promise<boolean>;
-  getLatestPrices: (itemIds: number[]) => Promise<Record<number, number>>;
+  getLatestPrices:       (itemIds: number[]) => Promise<Record<number, number>>;
+  getLatestPriceEntries: (itemIds: number[]) => Promise<Record<number, PriceEntry>>;
   getPriceHistory: (itemId: number) => Promise<PriceEntry[]>;
   ocr: {
     startSelection: ()                      => Promise<CaptureRegion | null>;

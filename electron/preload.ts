@@ -16,7 +16,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   searchItems:       (query: string, lang?: string) => ipcRenderer.invoke('items:search', query, lang),
   getRecipeByItemId: (itemId: number) => ipcRenderer.invoke('recipes:getByItemId', itemId),
   setPrice:        (itemId: number, price: number) => ipcRenderer.invoke('prices:setPrice', itemId, price),
-  getLatestPrices: (itemIds: number[]) => ipcRenderer.invoke('prices:getLatestPrices', itemIds),
+  getLatestPrices:       (itemIds: number[]) => ipcRenderer.invoke('prices:getLatestPrices', itemIds),
+  getLatestPriceEntries: (itemIds: number[]) => ipcRenderer.invoke('prices:getLatestPriceEntries', itemIds),
   getPriceHistory: (itemId: number) => ipcRenderer.invoke('prices:getHistory', itemId),
   ocr: {
     startSelection: ()                       => ipcRenderer.invoke('ocr:startSelection'),

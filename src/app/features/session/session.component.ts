@@ -5,10 +5,11 @@ import { SessionService } from '../../core/services/session.service';
 import { PriceService } from '../../core/services/price.service';
 import { CraftSession } from '@electron';
 import { RarityColorPipe, RarityLabelPipe } from '../../shared/pipes/rarity.pipe';
+import { CopyBtnComponent } from '../../shared/components/copy-btn.component';
 
 @Component({
   selector: 'app-session',
-  imports: [DecimalPipe, FormsModule, RarityColorPipe, RarityLabelPipe],
+  imports: [DecimalPipe, FormsModule, RarityColorPipe, RarityLabelPipe, CopyBtnComponent],
   templateUrl: './session.component.html',
   styleUrl: './session.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

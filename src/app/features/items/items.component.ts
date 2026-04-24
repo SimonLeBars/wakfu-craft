@@ -9,10 +9,11 @@ import { SessionService } from '../../core/services/session.service';
 import { PriceHistoryComponent } from './price-history/price-history.component';
 import { IngredientRowComponent } from './ingredient-row/ingredient-row.component';
 import { RarityColorPipe, RarityLabelPipe } from '../../shared/pipes/rarity.pipe';
+import { CopyBtnComponent } from '../../shared/components/copy-btn.component';
 
 @Component({
   selector: 'app-items',
-  imports: [DecimalPipe, FormsModule, ProfitabilityComponent, PriceHistoryComponent, IngredientRowComponent, RarityColorPipe, RarityLabelPipe],
+  imports: [DecimalPipe, FormsModule, ProfitabilityComponent, PriceHistoryComponent, IngredientRowComponent, RarityColorPipe, RarityLabelPipe, CopyBtnComponent],
   templateUrl: './items.component.html',
   styleUrl: './items.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

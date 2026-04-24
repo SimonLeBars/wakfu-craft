@@ -6,7 +6,10 @@
   <div class="ingredient__row">
     <span class="ingredient__qty">× {{ ingredient().quantity }}</span>
     <div class="ingredient__info">
-      <span class="ingredient__name">{{ ingredient().item_name['fr'] }}</span>
+      <div class="ingredient__name-row">
+        <span class="ingredient__name">{{ ingredient().item_name['fr'] }}</span>
+        <app-copy-btn [text]="ingredient().item_name['fr']" />
+      </div>
       <div class="ingredient__meta">
         <span class="ingredient__level">Niv. {{ ingredient().item_level }}</span>
         <span class="badge-rarity" [style.color]="ingredient().rarity | rarityColor">{{ ingredient().rarity | rarityLabel }}</span>
@@ -64,6 +67,11 @@
           (keyup.enter)="onSetPrice(priceInput.value)"
           [attr.aria-label]="'Prix marché de ' + ingredient().item_name['fr']"
         />
+        @if (priceService.getPriceDate(ingredient().item_id); as date) {
+          <span class="price-date" [title]="date | date:'dd/MM/yyyy HH:mm'">
+            {{ date | date:'dd/MM' }}
+          </span>
+        }
         <button class="btn-save"
           (click)="onSetPrice(priceInput.value)"
           [attr.aria-label]="'Enregistrer le prix de ' + ingredient().item_name['fr']">

@@ -75,6 +75,7 @@
           <div class="craft-item">
             <span class="craft-item__name">
               {{ item.item_name['fr'] }}
+              <app-copy-btn [text]="item.item_name['fr']" />
               <span class="badge-rarity" [style.color]="item.rarity | rarityColor">{{ item.rarity | rarityLabel }}</span>
             </span>
             <div class="craft-item__controls">
@@ -116,7 +117,7 @@
           @for (item of sessionService.shoppingList(); track item.item_id) {
             <div class="shopping-item">
               <div class="shopping-item__info">
-                <span class="shopping-item__name">{{ item.item_name['fr'] }}</span>
+                <span class="shopping-item__name">{{ item.item_name['fr'] }}<app-copy-btn [text]="item.item_name['fr']" /></span>
                 <div class="shopping-item__meta">
                   <span class="shopping-item__level">Niv. {{ item.item_level }}</span>
                   <span class="badge-rarity" [style.color]="item.rarity | rarityColor">{{ item.rarity | rarityLabel }}</span>
@@ -207,7 +208,7 @@
               <li class="craft-order__item">
                 <span class="craft-order__num">{{ $index + 1 }}</span>
                 <span class="craft-order__info">
-                  <span class="craft-order__name">{{ step.item_name['fr'] }}</span>
+                  <span class="craft-order__name">{{ step.item_name['fr'] }}<app-copy-btn [text]="step.item_name['fr']" /></span>
                   <span class="badge-rarity" [style.color]="step.rarity | rarityColor">{{ step.rarity | rarityLabel }}</span>
                   <span class="craft-order__level">Niv. {{ step.item_level }}</span>
                 </span>

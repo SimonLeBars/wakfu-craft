@@ -42,6 +42,7 @@ interface RecipeRow         { id: number; level: number; xp_ratio: number; categ
 interface IngredientRow     { quantity: number; item_id: number; item_name: string; item_level: number; item_type: number; rarity: number | null }
 interface PriceRow          { price: number }
 interface PriceItemRow      { item_id: number; price: number }
+interface PriceEntryRow     { item_id: number; price: number; recorded_at: string }
 interface RecipeIdRow       { id: number }
 interface SessionItemDbRow  { session_item_id: number; craft_quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null; parent_item_id: number | null }
 interface ExistingItemRow   { id: number; quantity: number }
@@ -342,6 +343,17 @@ export class DatabaseService {
       AND recorded_at = (SELECT MAX(recorded_at) FROM price_history p2 WHERE p2.item_id = p1.item_id)
     `).all(...itemIds) as PriceItemRow[];
     return Object.fromEntries(rows.map(r => [r.item_id, r.price]));
+  }
+
+  getLatestPriceEntries(itemIds: number[]): Record<number, PriceEntry> {
+    if (itemIds.length === 0) return {};
+    const placeholders = itemIds.map(() => '?').join(',');
+    const rows = this.db.prepare(`
+      SELECT item_id, price, recorded_at FROM price_history p1
+      WHERE item_id IN (${placeholders})
+      AND recorded_at = (SELECT MAX(recorded_at) FROM price_history p2 WHERE p2.item_id = p1.item_id)
+    `).all(...itemIds) as PriceEntryRow[];
+    return Object.fromEntries(rows.map(r => [r.item_id, { price: r.price, recorded_at: r.recorded_at }]));
   }
 
   getPriceHistory(itemId: number): PriceEntry[] {

@@ -33,11 +33,18 @@
   min-width: 0;
 }
 
+.ingredient__name-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
 .ingredient__name {
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .ingredient__meta {
@@ -156,6 +163,13 @@
 .price-input {
   @include price-field;
   &--small { width: 80px; }
+}
+
+.price-date {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-save { @include btn-save; }
