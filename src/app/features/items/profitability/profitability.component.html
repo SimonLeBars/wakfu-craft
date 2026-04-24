@@ -20,10 +20,22 @@
 
         <!-- Prix de vente -->
         <div class="breakdown__row">
-          <span class="breakdown__label">Prix de vente</span>
+          <span class="breakdown__label">
+            Prix de vente
+            @if (result.resultQuantity > 1) {
+              <span class="qty-hint">× {{ result.resultQuantity }}</span>
+            }
+          </span>
           <span class="breakdown__value"
                 [class.missing]="result.sellPrice === 0">
-            {{ result.sellPrice > 0 ? (result.sellPrice | number:'1.0-0') + ' k' : 'Non renseigné' }}
+            @if (result.sellPrice > 0) {
+              {{ result.sellPrice | number:'1.0-0' }} k
+              @if (result.resultQuantity > 1) {
+                <span class="qty-hint">= {{ result.sellPrice * result.resultQuantity | number:'1.0-0' }} k</span>
+              }
+            } @else {
+              Non renseigné
+            }
           </span>
         </div>
 

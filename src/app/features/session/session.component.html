@@ -79,6 +79,9 @@
               <span class="badge-rarity" [style.color]="item.rarity | rarityColor">{{ item.rarity | rarityLabel }}</span>
             </span>
             <div class="craft-item__controls">
+              @if (item.result_quantity > 1) {
+                <span class="craft-produces" title="Items produits">= {{ item.craft_quantity * item.result_quantity }}</span>
+              }
               <input
                 type="number"
                 [value]="item.craft_quantity"

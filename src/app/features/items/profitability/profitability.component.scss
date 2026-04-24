@@ -31,7 +31,12 @@
     &--total { font-size: 1.05rem; font-weight: 600; }
   }
 
-  &__label { color: var(--text-label); }
+  &__label {
+    color: var(--text-label);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
 
   &__value {
     font-family: monospace;
@@ -39,6 +44,12 @@
     &.positive { color: var(--success); }
     &.negative { color: var(--error); }
     &.missing  { color: var(--text-muted); font-style: italic; }
+  }
+
+  .qty-hint {
+    font-size: 0.75rem;
+    color: var(--craft);
+    font-family: inherit;
   }
 
   &__divider {

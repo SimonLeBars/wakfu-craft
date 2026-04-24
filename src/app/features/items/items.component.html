@@ -86,6 +86,9 @@
               (keyup.enter)="onSetSellPrice(sellPriceInput.value)"
               aria-label="Prix de vente"
             />
+            @if (priceService.getPriceDate(itemService.selectedItem()!.id); as date) {
+              <span class="price-date" [title]="date | date:'dd/MM/yyyy HH:mm'">{{ date | date:'dd/MM' }}</span>
+            }
             <button class="btn-save"
               (click)="onSetSellPrice(sellPriceInput.value)"
               aria-label="Enregistrer le prix de vente">
@@ -101,6 +104,9 @@
         <div class="recipe-meta">
           <span>📊 Niveau de recette : {{ itemService.selectedRecipe()!.level }}</span>
           <span>⭐ XP : {{ itemService.selectedRecipe()!.xp_ratio }}</span>
+          @if (itemService.selectedRecipe()!.result_quantity > 1) {
+            <span class="badge-qty">× {{ itemService.selectedRecipe()!.result_quantity }} produits</span>
+          }
         </div>
 
         <h3>Ingrédients</h3>

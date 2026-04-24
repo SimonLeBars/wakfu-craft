@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { DecimalPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ItemService } from '../../core/services/item.service';
 import { PriceService } from '../../core/services/price.service';
@@ -13,7 +13,7 @@ import { CopyBtnComponent } from '../../shared/components/copy-btn.component';
 
 @Component({
   selector: 'app-items',
-  imports: [DecimalPipe, FormsModule, ProfitabilityComponent, PriceHistoryComponent, IngredientRowComponent, RarityColorPipe, RarityLabelPipe, CopyBtnComponent],
+  imports: [DecimalPipe, DatePipe, FormsModule, ProfitabilityComponent, PriceHistoryComponent, IngredientRowComponent, RarityColorPipe, RarityLabelPipe, CopyBtnComponent],
   templateUrl: './items.component.html',
   styleUrl: './items.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -4,14 +4,15 @@ import { ItemService } from './item.service';
 import { Recipe } from '@electron';
 
 export interface ProfitabilityResult {
-  resourceCost:  number;
-  sellPrice:     number;
-  grossMargin:   number;
-  marginPercent: number;
-  missingPrices: number[];
-  isComplete:    boolean;
-  /** Coût craft unitaire (hors quantité) par item_id, pour tous les niveaux en mode craft */
-  subCraftCosts: Partial<Record<number, number>>;
+  resourceCost:    number;
+  resultQuantity:  number;
+  sellPrice:       number;
+  grossMargin:     number;
+  marginPercent:   number;
+  missingPrices:   number[];
+  isComplete:      boolean;
+  /** Coût craft unitaire par item_id, pour tous les niveaux en mode craft */
+  subCraftCosts:   Partial<Record<number, number>>;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -40,12 +41,14 @@ export class ProfitabilityService {
       }
     }
 
-    const sellPrice     = this.priceService.getPrice(item.id) ?? 0;
-    const grossMargin   = sellPrice - resourceCost;
-    const marginPercent = resourceCost > 0 ? (grossMargin / resourceCost) * 100 : 0;
+    const resultQuantity = recipe.result_quantity ?? 1;
+    const sellPrice      = this.priceService.getPrice(item.id) ?? 0;
+    const grossMargin    = sellPrice * resultQuantity - resourceCost;
+    const marginPercent  = resourceCost > 0 ? (grossMargin / resourceCost) * 100 : 0;
 
     return {
       resourceCost,
+      resultQuantity,
       sellPrice,
       grossMargin,
       marginPercent,
@@ -86,8 +89,9 @@ export class ProfitabilityService {
           }
         }
         if (complete) {
-          subCraftCosts[itemId] = total;
-          return total;
+          const unitCost = total / (subRecipe.result_quantity ?? 1);
+          subCraftCosts[itemId] = unitCost;
+          return unitCost;
         }
         return null;
       }

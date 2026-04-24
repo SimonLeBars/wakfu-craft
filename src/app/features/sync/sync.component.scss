@@ -1,5 +1,11 @@
 @use 'styles/mixins' as *;
 
+:host {
+  display: block;
+  height: calc(100vh - var(--nav-height));
+  overflow-y: auto;
+}
+
 .sync-container {
   max-width: 600px;
   margin: 40px auto;

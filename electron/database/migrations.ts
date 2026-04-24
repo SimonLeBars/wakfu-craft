@@ -15,4 +15,5 @@ function loadSql(version: number): string {
 export const MIGRATIONS: string[] = [
   loadSql(1),
   loadSql(2),
+  loadSql(3),
 ];

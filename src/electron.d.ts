@@ -9,11 +9,12 @@ export interface RecipeIngredient {
 }
 
 export interface Recipe {
-  id:          number;
-  level:       number;
-  category_id: number;
-  xp_ratio:    number;
-  ingredients: RecipeIngredient[];
+  id:              number;
+  level:           number;
+  category_id:     number;
+  xp_ratio:        number;
+  result_quantity: number;
+  ingredients:     RecipeIngredient[];
 }
 
 export interface WakfuItem {
@@ -33,6 +34,7 @@ export interface PriceEntry {
 export interface SessionItem {
   session_item_id: number;
   craft_quantity:  number;
+  result_quantity: number;
   item_id:         number;
   item_name:       Record<string, string>;
   item_level:      number;

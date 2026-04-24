@@ -1,4 +1,6 @@
 .app-nav {
+  height: var(--nav-height);
+
   display: flex;
   gap: 0;
   background: var(--bg-base);

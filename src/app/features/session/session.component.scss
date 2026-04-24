@@ -93,6 +93,13 @@
   &__controls { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 }
 
+.craft-produces {
+  font-size: 0.75rem;
+  color: var(--craft);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .qty-input {
   width: 52px;
   padding: 4px 6px;

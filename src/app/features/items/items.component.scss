@@ -79,6 +79,15 @@
   border-radius: 10px;
 }
 
+.badge-qty {
+  font-size: 0.8rem;
+  background: var(--craft-bg);
+  color: var(--craft);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
 .no-results {
   padding: 24px 16px;
   color: var(--text-muted);
@@ -172,6 +181,13 @@ h3 {
 }
 
 .price-input { @include price-field; }
+
+.price-date {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 
 .btn-save { @include btn-save; }
 

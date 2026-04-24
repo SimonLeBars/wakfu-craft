@@ -34,7 +34,7 @@ export class SessionComponent implements OnInit {
   protected readonly totalSellPrice = computed(() =>
     this.sessionService.sessionItems().reduce((sum, item) => {
       const price = this.priceService.getPrice(item.item_id) ?? 0;
-      return sum + price * item.craft_quantity;
+      return sum + price * item.craft_quantity * item.result_quantity;
     }, 0)
   );
 

@@ -30,21 +30,22 @@ interface RawWakfuIngredient {
 }
 
 interface RawWakfuRecipeResult {
-  recipeId: number;
-  productedItemId: number;
+  recipeId:              number;
+  productedItemId:       number;
+  productedItemQuantity: number;
 }
 
 // ── Types internes pour les lignes SQL ───────────────────────────────────────
 
 interface SettingRow        { value: string }
 interface ItemRow           { id: number; name: string; type: number; level: number; rarity: number | null }
-interface RecipeRow         { id: number; level: number; xp_ratio: number; category_id: number }
+interface RecipeRow         { id: number; level: number; xp_ratio: number; category_id: number; result_quantity: number }
 interface IngredientRow     { quantity: number; item_id: number; item_name: string; item_level: number; item_type: number; rarity: number | null }
 interface PriceRow          { price: number }
 interface PriceItemRow      { item_id: number; price: number }
 interface PriceEntryRow     { item_id: number; price: number; recorded_at: string }
 interface RecipeIdRow       { id: number }
-interface SessionItemDbRow  { session_item_id: number; craft_quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null; parent_item_id: number | null }
+interface SessionItemDbRow  { session_item_id: number; craft_quantity: number; result_quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null; parent_item_id: number | null }
 interface ExistingItemRow   { id: number; quantity: number }
 interface IdRow             { id: number }
 interface ShoppingIngRow    { quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null }
@@ -240,11 +241,11 @@ export class DatabaseService {
 
   private importRecipeResults(data: RawWakfuRecipeResult[]): number {
     const update = this.db.prepare(`
-      UPDATE recipes SET result_item_id = @item_id WHERE id = @recipe_id
+      UPDATE recipes SET result_item_id = @item_id, result_quantity = @result_quantity WHERE id = @recipe_id
     `);
     const updateMany = this.db.transaction((results: RawWakfuRecipeResult[]) => {
       for (const result of results) {
-        update.run({ recipe_id: result.recipeId, item_id: result.productedItemId });
+        update.run({ recipe_id: result.recipeId, item_id: result.productedItemId, result_quantity: result.productedItemQuantity ?? 1 });
       }
     });
     updateMany(data);
@@ -289,7 +290,7 @@ export class DatabaseService {
 
   getRecipeByItemId(itemId: number): Recipe | null {
     const recipe = this.db.prepare(`
-      SELECT r.id, r.level, r.xp_ratio, r.category_id
+      SELECT r.id, r.level, r.xp_ratio, r.category_id, r.result_quantity
       FROM recipes r WHERE r.result_item_id = @itemId
     `).get({ itemId }) as RecipeRow | undefined;
 
@@ -440,6 +441,7 @@ export class DatabaseService {
     return this.mapSessionItemRows(
       this.db.prepare(`
         SELECT si.id AS session_item_id, si.quantity AS craft_quantity,
+               COALESCE(r.result_quantity, 1) AS result_quantity,
                i.id AS item_id, i.name AS item_name, i.level AS item_level,
                si.parent_item_id,
                COALESCE(
@@ -449,6 +451,7 @@ export class DatabaseService {
                ) AS rarity
         FROM craft_session_items si
         JOIN items i ON i.id = si.item_id
+        LEFT JOIN recipes r ON r.result_item_id = si.item_id
         WHERE si.session_id = ? AND si.parent_item_id IS NULL
         ORDER BY i.level ASC
       `).all(sessionId) as SessionItemDbRow[],
@@ -460,6 +463,7 @@ export class DatabaseService {
     return this.mapSessionItemRows(
       this.db.prepare(`
         SELECT si.id AS session_item_id, si.quantity AS craft_quantity,
+               COALESCE(r.result_quantity, 1) AS result_quantity,
                i.id AS item_id, i.name AS item_name, i.level AS item_level,
                si.parent_item_id,
                COALESCE(
@@ -469,6 +473,7 @@ export class DatabaseService {
                ) AS rarity
         FROM craft_session_items si
         JOIN items i ON i.id = si.item_id
+        LEFT JOIN recipes r ON r.result_item_id = si.item_id
         WHERE si.session_id = ?
       `).all(sessionId) as SessionItemDbRow[],
     );
@@ -477,9 +482,10 @@ export class DatabaseService {
   private mapSessionItemRows(rows: SessionItemDbRow[]): SessionItem[] {
     return rows.map(row => ({
       ...row,
-      item_name:      JSON.parse(row.item_name) as Record<string, string>,
-      rarity:         row.rarity ?? 0,
-      parent_item_id: row.parent_item_id ?? null,
+      item_name:       JSON.parse(row.item_name) as Record<string, string>,
+      rarity:          row.rarity ?? 0,
+      result_quantity: row.result_quantity ?? 1,
+      parent_item_id:  row.parent_item_id ?? null,
     }));
   }
 
