@@ -3,7 +3,8 @@ import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SessionService } from '../../core/services/session.service';
 import { PriceService } from '../../core/services/price.service';
-import { CraftSession } from '@electron';
+import { ProfessionProfileService } from '../../core/services/profession-profile.service';
+import { CraftSession, XpRecipe } from '@electron';
 import { RarityColorPipe, RarityLabelPipe } from '../../shared/pipes/rarity.pipe';
 import { CopyBtnComponent } from '../../shared/components/copy-btn.component';
 
@@ -17,6 +18,9 @@ import { CopyBtnComponent } from '../../shared/components/copy-btn.component';
 export class SessionComponent implements OnInit {
   protected readonly sessionService = inject(SessionService);
   protected readonly priceService   = inject(PriceService);
+  private   readonly profile        = inject(ProfessionProfileService);
+
+  private readonly xpRecipes = signal<XpRecipe[]>([]);
 
   protected readonly newSessionName = signal('');
   protected readonly showNewSession = signal(false);
@@ -50,9 +54,41 @@ export class SessionComponent implements OnInit {
     sell:        this.sessionService.sessionItems().filter(i => !this.priceService.getPrice(i.item_id)).length,
   }));
 
+  protected readonly totalExpectedXp = computed(() => {
+    const recipeMap = new Map(this.xpRecipes().map(r => [r.item_id, r]));
+    const levels    = this.profile.levels();
+    return this.sessionService.sessionItems().reduce((sum, item) => {
+      const recipe = recipeMap.get(item.item_id);
+      if (!recipe) return sum;
+      const playerLevel = levels[recipe.category_id] ?? 1;
+      const gap = recipe.recipe_level - playerLevel;
+      let successRate: number, xpMultiplier: number;
+      if (gap > 0) {
+        successRate  = Math.max(0.1, (10 - gap) / 10);
+        xpMultiplier = 1 + gap * 0.1;
+      } else {
+        successRate  = 1;
+        const below  = -gap;
+        xpMultiplier = below <= 10 ? 1 : below < 20 ? (20 - below) / 10 : 0;
+      }
+      return sum + recipe.xp_ratio * xpMultiplier * successRate * item.craft_quantity;
+    }, 0);
+  });
+
   async ngOnInit(): Promise<void> {
     await this.sessionService.loadSessions();
-    await this.loadPrices();
+    await Promise.all([this.loadPrices(), this.loadXpRecipes(), this.profile.load()]);
+  }
+
+  async onSelectSession(session: CraftSession): Promise<void> {
+    await this.sessionService.selectSession(session);
+    await this.loadXpRecipes();
+  }
+
+  protected formatXp(val: number): string {
+    if (val >= 1_000_000) return (val / 1_000_000).toFixed(1) + ' M';
+    if (val >= 1_000)     return (val / 1_000).toFixed(1) + ' K';
+    return val.toFixed(0);
   }
 
   async onCreateSession(): Promise<void> {
@@ -94,6 +130,13 @@ export class SessionComponent implements OnInit {
   onCancelRename(event?: Event): void {
     event?.stopPropagation();
     this.renamingId.set(null);
+  }
+
+  private async loadXpRecipes(): Promise<void> {
+    const itemIds = this.sessionService.sessionItems().map(i => i.item_id);
+    if (itemIds.length === 0) { this.xpRecipes.set([]); return; }
+    const recipes = await window.electronAPI.getRecipesByItemIds(itemIds);
+    this.xpRecipes.set(recipes);
   }
 
   private async loadPrices(): Promise<void> {

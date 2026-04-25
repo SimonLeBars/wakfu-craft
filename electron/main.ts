@@ -142,6 +142,11 @@ function registerIpcHandlers(db: DatabaseService): void {
   ipcMain.handle('debug:getUserDataPath', () => app.getPath('userData'));
 
   ipcMain.handle('items:getTypes', () => db.getItemTypes());
+  ipcMain.handle('xp:getCategories', () => db.getRecipeCategories());
+  ipcMain.handle('profession:getLevels', () => db.getProfessionLevels());
+  ipcMain.handle('profession:setLevels', (_e, levels: Record<number, number>) => db.setProfessionLevels(levels));
+  ipcMain.handle('xp:getRecipesByCategory', (_e, categoryId: number) => db.getRecipesByCategory(categoryId));
+  ipcMain.handle('xp:getRecipesByItemIds',  (_e, itemIds: number[])  => db.getRecipesByItemIds(itemIds));
 
   // Recherche d'items par nom
   ipcMain.handle('items:search', (_event, query: string, lang: string = 'fr', typeIds: number[] = [], minLevel?: number, maxLevel?: number, rarities: number[] = []) => {

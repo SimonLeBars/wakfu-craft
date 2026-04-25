@@ -1,0 +1,195 @@
+<div class="xp-layout">
+
+  <!-- Contrôles -->
+  <div class="xp-controls">
+    <div class="controls-row">
+
+      <div class="control-group">
+        <label for="cat-select" class="control-label">Métier</label>
+        <select
+          id="cat-select"
+          [ngModel]="xp.selectedCatId()"
+          (ngModelChange)="xp.onCategoryChange($event)"
+          class="control-select"
+          aria-label="Sélectionner un métier"
+        >
+          <option [ngValue]="null">— Choisir un métier —</option>
+          @for (cat of xp.craftCategories(); track cat.id) {
+            <option [ngValue]="cat.id">{{ cat.name['fr'] }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="level-input" class="control-label">Niveau du métier</label>
+        <input
+          id="level-input"
+          type="number"
+          min="1"
+          max="230"
+          class="control-input"
+          [ngModel]="xp.playerLevel()"
+          (ngModelChange)="xp.playerLevel.set(+$event || 1)"
+          aria-label="Niveau actuel du métier"
+        />
+      </div>
+
+      <div class="control-group">
+        <span class="control-label" id="sort-label">Classer par</span>
+        <div class="sort-toggle" role="group" aria-labelledby="sort-label">
+          <button
+            [class.active]="xp.sortMode() === 'xp-per-cost'"
+            (click)="xp.sortMode.set('xp-per-cost')"
+            [attr.aria-pressed]="xp.sortMode() === 'xp-per-cost'"
+          >XP / Coût</button>
+          <button
+            [class.active]="xp.sortMode() === 'xp-times-profit'"
+            (click)="xp.sortMode.set('xp-times-profit')"
+            [attr.aria-pressed]="xp.sortMode() === 'xp-times-profit'"
+          >XP × Rentabilité</button>
+        </div>
+      </div>
+
+      @if (xp.selectedCatId()) {
+        <button class="btn-refresh" (click)="xp.refreshPrices()" aria-label="Rafraîchir les prix">
+          ↺ Prix
+        </button>
+      }
+
+    </div>
+
+    @if (xp.sortMode() === 'xp-per-cost') {
+      <p class="sort-hint">Classement : XP effectif par 1 000 kamas dépensés — les recettes les moins chères à leveler arrivent en premier.</p>
+    } @else {
+      <p class="sort-hint">Classement : XP effectif × profit (kamas) — les recettes rentables <em>et</em> qui donnent de l'XP arrivent en premier.</p>
+    }
+  </div>
+
+  <!-- Contenu principal -->
+  @if (!xp.selectedCatId()) {
+    <div class="empty-state">Sélectionne un métier pour voir les recettes</div>
+  } @else if (xp.isLoading()) {
+    <div class="loading" aria-live="polite">Chargement...</div>
+  } @else if (xp.rows().length === 0) {
+    <div class="empty-state">Aucune recette trouvée — pense à synchroniser les données.</div>
+  } @else {
+    <div class="table-wrapper" role="region" aria-label="Recettes classées">
+      <table class="recipes-table">
+        <thead>
+          <tr>
+            <th scope="col" class="col-name">Item</th>
+            <th scope="col" class="col-level">Niv.</th>
+            <th scope="col" class="col-gap">Écart</th>
+            <th scope="col" class="col-success">Succès</th>
+            <th scope="col" class="col-xp">XP/craft</th>
+            <th scope="col" class="col-cost">Coût ingr.</th>
+            <th scope="col" class="col-revenue">Revenu</th>
+            <th scope="col" class="col-profit">Profit</th>
+            <th scope="col" class="col-score">
+              {{ xp.sortMode() === 'xp-per-cost' ? 'XP/1000k' : 'XP×Profit' }}
+            </th>
+            <th scope="col" class="col-actions"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of xp.rows(); track row.recipe_id) {
+            <tr>
+              <td class="col-name">
+                @if (row.hasMissingPrices) {
+                  <span class="price-dot price-dot--error"
+                        role="img"
+                        aria-label="Prix manquants"
+                        title="Prix manquants pour certains ingrédients"></span>
+                } @else if (row.hasStalePrices) {
+                  <span class="price-dot price-dot--warn"
+                        role="img"
+                        aria-label="Prix anciens"
+                        title="Certains prix datent de plus d'un jour"></span>
+                }
+                <span class="item-name">{{ row.item_name['fr'] }}</span>
+                <span class="badge-rarity" [style.color]="row.rarity | rarityColor">{{ row.rarity | rarityLabel }}</span>
+                @if (row.result_quantity > 1) {
+                  <span class="qty-badge">×{{ row.result_quantity }}</span>
+                }
+              </td>
+              <td class="col-level">{{ row.recipe_level }}</td>
+              <td class="col-gap">
+                <span class="gap-badge" [class]="gapClass(row.gap)">
+                  {{ row.gap > 0 ? '+' : '' }}{{ row.gap }}
+                </span>
+              </td>
+              <td class="col-success">{{ (row.successRate * 100) | number:'1.0-0' }}%</td>
+              <td class="col-xp">{{ row.effectiveXp | number:'1.0-1' }}</td>
+              <td class="col-cost">{{ row.ingredientCost !== null ? ((row.ingredientCost | number:'1.0-0') + ' k') : '—' }}</td>
+              <td class="col-revenue">{{ row.sellRevenue !== null ? ((row.sellRevenue | number:'1.0-0') + ' k') : '—' }}</td>
+              <td class="col-profit" [class.val--positive]="row.profit !== null && row.profit > 0" [class.val--negative]="row.profit !== null && row.profit < 0">
+                {{ row.profit !== null ? ((row.profit | number:'1.0-0') + ' k') : '—' }}
+              </td>
+              <td class="col-score">
+                @if (xp.sortMode() === 'xp-per-cost') {
+                  {{ formatXpPerCost(row.xpPerCost) }}
+                } @else {
+                  {{ formatXpTimesProfit(row.xpTimesProfit) }}
+                }
+              </td>
+              <td class="col-actions">
+                <button
+                  class="btn-add-session"
+                  (click)="xp.openDialog(row)"
+                  [attr.aria-label]="'Ajouter ' + row.item_name['fr'] + ' à la session'"
+                  title="Ajouter à la session de craft"
+                >+</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+</div>
+
+@if (xp.dialogRow(); as row) {
+  <div class="dialog-backdrop" (click)="xp.closeDialog()" role="dialog" aria-modal="true" [attr.aria-label]="'Ajouter ' + row.item_name['fr'] + ' à la session'">
+    <div class="dialog-panel" (click)="$event.stopPropagation()">
+
+      <h2 class="dialog-title">
+        Ajouter à la session
+        <span class="badge-rarity" [style.color]="row.rarity | rarityColor">{{ row.rarity | rarityLabel }}</span>
+        {{ row.item_name['fr'] }}
+      </h2>
+
+      <div class="dialog-qty-row">
+        <label for="dialog-qty" class="control-label">Nombre de crafts</label>
+        <input
+          id="dialog-qty"
+          type="number"
+          min="1"
+          class="control-input"
+          [ngModel]="xp.dialogQty()"
+          (ngModelChange)="xp.dialogQty.set(+$event || 1)"
+        />
+      </div>
+
+      @if (xp.dialogSubCrafts().length > 0) {
+        <div class="dialog-subcrafts">
+          <p class="dialog-subcrafts-label">Sous-crafts détectés</p>
+          <ul class="subcrafts-list">
+            @for (sc of xp.dialogSubCrafts(); track sc.item_id) {
+              <li>
+                <span class="badge-rarity" [style.color]="sc.rarity | rarityColor">{{ sc.rarity | rarityLabel }}</span>
+                {{ sc.item_name['fr'] }}
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      <div class="dialog-actions">
+        <button class="btn-cancel" (click)="xp.closeDialog()">Annuler</button>
+        <button class="btn-confirm" (click)="xp.confirmAdd()">Ajouter</button>
+      </div>
+
+    </div>
+  </div>
+}

@@ -26,7 +26,7 @@
       @for (session of sessionService.sessions(); track session.id) {
         <div class="session-item"
              [class.active]="sessionService.activeSession()?.id === session.id"
-             (click)="renamingId() !== session.id && sessionService.selectSession(session)">
+             (click)="renamingId() !== session.id && onSelectSession(session)">
 
           <div class="session-item__info">
             @if (renamingId() === session.id) {
@@ -182,6 +182,13 @@
                     [class.positive]="marginPercent() > 0"
                     [class.negative]="marginPercent() < 0">
                 {{ marginPercent() > 0 ? '+' : '' }}{{ marginPercent() | number:'1.0-1' }} %
+              </span>
+            </div>
+            <div class="breakdown__divider"></div>
+            <div class="breakdown__row breakdown__row--total">
+              <span class="breakdown__label">XP prévu</span>
+              <span class="breakdown__value" [class.missing]="totalExpectedXp() === 0">
+                {{ totalExpectedXp() > 0 ? formatXp(totalExpectedXp()) : 'Niveaux métier manquants' }}
               </span>
             </div>
           </div>

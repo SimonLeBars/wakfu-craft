@@ -23,6 +23,25 @@ export interface ItemType {
   name:      Record<string, string>;
 }
 
+export interface RecipeCategory {
+  id:        number;
+  name:      Record<string, string>;
+  is_innate: boolean;
+}
+
+export interface XpRecipe {
+  recipe_id:       number;
+  recipe_level:    number;
+  xp_ratio:        number;
+  result_quantity: number;
+  category_id:     number;
+  item_id:         number;
+  item_name:       Record<string, string>;
+  item_level:      number;
+  rarity:          number;
+  ingredients:     { item_id: number; quantity: number }[];
+}
+
 export interface WakfuItem {
   id:        number;
   name:      Record<string, string>;
@@ -87,7 +106,12 @@ export interface ElectronAPI {
     count?: number;
   }) => void) => void;
   debugReadFile: (filename: string) => Promise<unknown>;
-  getItemTypes:      () => Promise<ItemType[]>;
+  getItemTypes:         () => Promise<ItemType[]>;
+  getRecipeCategories:  () => Promise<RecipeCategory[]>;
+  getProfessionLevels:  () => Promise<Record<number, number>>;
+  setProfessionLevels:  (levels: Record<number, number>) => Promise<void>;
+  getRecipesByCategory: (categoryId: number) => Promise<XpRecipe[]>;
+  getRecipesByItemIds:  (itemIds: number[])  => Promise<XpRecipe[]>;
   searchItems:       (query: string, lang?: string, typeIds?: number[], minLevel?: number, maxLevel?: number, rarities?: number[]) => Promise<WakfuItem[]>;
   getRecipeByItemId: (itemId: number) => Promise<Recipe | null>;
   setPrice:        (itemId: number, price: number) => Promise<boolean>;

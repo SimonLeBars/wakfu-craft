@@ -40,6 +40,11 @@ interface RawWakfuRecipeResult {
   productedItemQuantity: number;
 }
 
+interface RawWakfuRecipeCategory {
+  definition?: { id?: number; isInnate?: boolean };
+  title?: Record<string, string>;
+}
+
 // ── Types internes pour les lignes SQL ───────────────────────────────────────
 
 interface SettingRow        { value: string }
@@ -49,11 +54,14 @@ interface IngredientRow     { quantity: number; item_id: number; item_name: stri
 interface PriceRow          { price: number }
 interface PriceItemRow      { item_id: number; price: number }
 interface PriceEntryRow     { item_id: number; price: number; recorded_at: string }
-interface RecipeIdRow       { id: number }
-interface SessionItemDbRow  { session_item_id: number; craft_quantity: number; result_quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null; parent_item_id: number | null }
-interface ExistingItemRow   { id: number; quantity: number }
-interface IdRow             { id: number }
-interface ShoppingIngRow    { quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null }
+interface RecipeIdRow           { id: number }
+interface SessionItemDbRow      { session_item_id: number; craft_quantity: number; result_quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null; parent_item_id: number | null }
+interface ExistingItemRow       { id: number; quantity: number }
+interface IdRow                 { id: number }
+interface ShoppingIngRow        { quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null }
+interface RecipeCategoryRow     { id: number; name: string; is_innate: number }
+interface XpRecipeRow           { recipe_id: number; recipe_level: number; xp_ratio: number; result_quantity: number; category_id: number; item_id: number; item_name: string; item_level: number; rarity: number | null }
+interface XpIngRow              { item_id: number; quantity: number }
 
 
 export class DatabaseService {
@@ -157,6 +165,17 @@ export class DatabaseService {
     this.db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value);
   }
 
+  getProfessionLevels(): Record<number, number> {
+    const raw = this.getSetting('profession_levels');
+    if (!raw) return {};
+    try { return JSON.parse(raw) as Record<number, number>; }
+    catch { return {}; }
+  }
+
+  setProfessionLevels(levels: Record<number, number>): void {
+    this.setSetting('profession_levels', JSON.stringify(levels));
+  }
+
   // #region Imports on Sync
   importData(file: string, data: unknown[]): number {
     this.db.pragma('foreign_keys = OFF');
@@ -166,7 +185,8 @@ export class DatabaseService {
       if (file === 'recipes')           return this.importRecipes(data as RawWakfuRecipe[]);
       if (file === 'recipeIngredients') return this.importRecipeIngredients(data as RawWakfuIngredient[]);
       if (file === 'recipeResults')     return this.importRecipeResults(data as RawWakfuRecipeResult[]);
-      if (file === 'itemTypes')         return this.importItemTypes(data as RawWakfuItemType[]);
+      if (file === 'itemTypes')          return this.importItemTypes(data as RawWakfuItemType[]);
+      if (file === 'recipeCategories')  return this.importRecipeCategories(data as RawWakfuRecipeCategory[]);
       return 0;
     } finally {
       this.db.pragma('foreign_keys = ON');
@@ -281,11 +301,76 @@ export class DatabaseService {
     return data.length;
   }
 
+  private importRecipeCategories(data: RawWakfuRecipeCategory[]): number {
+    const insert = this.db.prepare(`
+      INSERT OR REPLACE INTO recipe_categories (id, name, is_innate) VALUES (@id, @name, @is_innate)
+    `);
+    const insertMany = this.db.transaction((cats: RawWakfuRecipeCategory[]) => {
+      for (const cat of cats) {
+        const id = cat.definition?.id;
+        if (!id) continue;
+        insert.run({ id, name: JSON.stringify(cat.title ?? {}), is_innate: cat.definition?.isInnate ? 1 : 0 });
+      }
+    });
+    insertMany(data);
+    return data.length;
+  }
+
   // #endregion
 
   getItemTypes(): { id: number; parent_id: number | null; name: Record<string, string> }[] {
     const rows = this.db.prepare('SELECT id, parent_id, name FROM item_types ORDER BY id').all() as { id: number; parent_id: number | null; name: string }[];
     return rows.map(r => ({ ...r, name: JSON.parse(r.name) as Record<string, string> }));
+  }
+
+  getRecipeCategories(): { id: number; name: Record<string, string>; is_innate: boolean }[] {
+    const rows = this.db.prepare('SELECT id, name, is_innate FROM recipe_categories ORDER BY id').all() as RecipeCategoryRow[];
+    return rows.map(r => ({ id: r.id, name: JSON.parse(r.name) as Record<string, string>, is_innate: !!r.is_innate }));
+  }
+
+  private xpRecipeSelect = `
+    SELECT r.id AS recipe_id, r.level AS recipe_level, r.xp_ratio, r.result_quantity, r.category_id,
+           i.id AS item_id, i.name AS item_name, i.level AS item_level,
+           COALESCE(
+             json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
+             json_extract(i.raw_data, '$.definition.rarity'),
+             0
+           ) AS rarity
+    FROM recipes r
+    JOIN items i ON r.result_item_id = i.id
+  `;
+
+  private mapXpRows(rows: XpRecipeRow[]): { recipe_id: number; recipe_level: number; xp_ratio: number; result_quantity: number; category_id: number; item_id: number; item_name: Record<string, string>; item_level: number; rarity: number; ingredients: { item_id: number; quantity: number }[] }[] {
+    const ingStmt = this.db.prepare('SELECT item_id, quantity FROM recipe_ingredients WHERE recipe_id = @recipeId');
+    return rows.map(row => ({
+      recipe_id:       row.recipe_id,
+      recipe_level:    row.recipe_level,
+      xp_ratio:        row.xp_ratio,
+      result_quantity: row.result_quantity,
+      category_id:     row.category_id,
+      item_id:         row.item_id,
+      item_name:       JSON.parse(row.item_name) as Record<string, string>,
+      item_level:      row.item_level,
+      rarity:          row.rarity ?? 0,
+      ingredients:     ingStmt.all({ recipeId: row.recipe_id }) as XpIngRow[],
+    }));
+  }
+
+  getRecipesByCategory(categoryId: number) {
+    const rows = this.db.prepare(
+      `${this.xpRecipeSelect} WHERE r.category_id = @categoryId ORDER BY r.level ASC`
+    ).all({ categoryId }) as XpRecipeRow[];
+    return this.mapXpRows(rows);
+  }
+
+  getRecipesByItemIds(itemIds: number[]) {
+    if (itemIds.length === 0) return [];
+    const valid = itemIds.filter(Number.isInteger);
+    if (valid.length === 0) return [];
+    const rows = this.db.prepare(
+      `${this.xpRecipeSelect} WHERE r.result_item_id IN (${valid.map(() => '?').join(',')})`
+    ).all(...valid) as XpRecipeRow[];
+    return this.mapXpRows(rows);
   }
 
   searchItems(query: string, lang: string = 'fr', typeIds: number[] = [], minLevel?: number, maxLevel?: number, rarities: number[] = []): WakfuItem[] {

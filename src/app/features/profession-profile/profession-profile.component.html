@@ -1,0 +1,72 @@
+<div class="profile-layout">
+  <div class="profile-header">
+    <h2 class="profile-title">Profil Métier</h2>
+    <p class="profile-hint">Renseigne tes niveaux pour que l'optimiseur XP les pré-remplisse automatiquement.</p>
+  </div>
+
+  <div class="profile-content">
+
+    @if (craftCategories().length > 0) {
+      <section class="prof-section">
+        <h3 class="section-title">Métiers de craft</h3>
+        <div class="prof-grid">
+          @for (cat of craftCategories(); track cat.id) {
+            <div class="prof-card">
+              <span class="prof-name">{{ cat.name['fr'] }}</span>
+              <div class="prof-level-row">
+                <input
+                  type="number"
+                  min="0"
+                  max="230"
+                  class="level-input"
+                  [value]="levelOf(cat.id)"
+                  (change)="onLevelChange(cat.id, $any($event.target).value)"
+                  [attr.aria-label]="'Niveau ' + cat.name['fr']"
+                />
+                <span class="level-max">/ 230</span>
+              </div>
+              <div class="level-bar" [attr.aria-hidden]="true">
+                <div class="level-bar__fill" [style.width.%]="levelOf(cat.id) / 230 * 100"></div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    @if (gatheringCategories().length > 0) {
+      <section class="prof-section">
+        <h3 class="section-title">Métiers de récolte</h3>
+        <div class="prof-grid">
+          @for (cat of gatheringCategories(); track cat.id) {
+            <div class="prof-card">
+              <span class="prof-name">{{ cat.name['fr'] }}</span>
+              <div class="prof-level-row">
+                <input
+                  type="number"
+                  min="0"
+                  max="230"
+                  class="level-input"
+                  [value]="levelOf(cat.id)"
+                  (change)="onLevelChange(cat.id, $any($event.target).value)"
+                  [attr.aria-label]="'Niveau ' + cat.name['fr']"
+                />
+                <span class="level-max">/ 230</span>
+              </div>
+              <div class="level-bar" [attr.aria-hidden]="true">
+                <div class="level-bar__fill" [style.width.%]="levelOf(cat.id) / 230 * 100"></div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    @if (profile.categories().length === 0) {
+      <div class="empty-state">
+        Aucun métier trouvé — synchronise les données depuis l'onglet 🔄 Sync.
+      </div>
+    }
+
+  </div>
+</div>
