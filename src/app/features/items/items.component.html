@@ -16,6 +16,101 @@
       }
     </div>
 
+    <!-- Filtre par type -->
+    @if (itemService.typeList().length > 0) {
+      <div class="filter-section">
+        <button
+          class="filter-toggle"
+          [class.filter-toggle--active]="itemService.selectedTypeIds().size > 0"
+          (click)="filterOpen.set(!filterOpen())"
+          [attr.aria-expanded]="filterOpen()"
+          aria-controls="filter-panel"
+        >
+          <span class="filter-toggle__label">Filtrer par type</span>
+          @if (itemService.selectedTypeIds().size > 0) {
+            <span class="filter-count" aria-label="{{ itemService.selectedTypeIds().size }} filtres actifs">
+              {{ itemService.selectedTypeIds().size }}
+            </span>
+          }
+          <span class="filter-chevron" [class.filter-chevron--open]="filterOpen()" aria-hidden="true">▼</span>
+        </button>
+
+        @if (filterOpen()) {
+          <div id="filter-panel" class="filter-panel" role="group" aria-label="Filtres par type d'item">
+            @if (itemService.selectedTypeIds().size > 0) {
+              <button class="filter-clear" (click)="itemService.clearTypeFilter(); onSearch()">
+                Tout effacer
+              </button>
+            }
+            <div class="filter-list">
+              @for (entry of visibleTypeList(); track entry.node.id) {
+                <div class="type-row" [style.padding-left.px]="entry.depth * 14 + 4">
+                  @if (entry.hasChildren) {
+                    <button
+                      class="collapse-btn"
+                      [class.collapse-btn--open]="!collapsedTypeIds().has(entry.node.id)"
+                      (click)="toggleCollapse(entry.node.id)"
+                      [attr.aria-expanded]="!collapsedTypeIds().has(entry.node.id)"
+                      [attr.aria-label]="(collapsedTypeIds().has(entry.node.id) ? 'Développer ' : 'Réduire ') + entry.node.name['fr']"
+                    >▶</button>
+                  } @else {
+                    <span class="collapse-placeholder" aria-hidden="true"></span>
+                  }
+                  <label class="type-label" [class.type-label--child]="entry.depth > 0">
+                    <input
+                      type="checkbox"
+                      [checked]="itemService.isTypeSelected(entry.node.id)"
+                      [indeterminate]="itemService.isTypeIndeterminate(entry.node.id)"
+                      (change)="itemService.toggleType(entry.node.id); onSearch()"
+                      [attr.aria-label]="entry.node.name['fr']"
+                    />
+                    <span>{{ entry.node.name['fr'] }}</span>
+                  </label>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Filtre par niveau -->
+    <div class="filter-section level-filter" [class.level-filter--active]="itemService.minLevel() !== null || itemService.maxLevel() !== null">
+      <span class="level-filter__label">Niveau</span>
+      <input
+        type="number" min="0" max="230" placeholder="Min"
+        class="level-input"
+        [ngModel]="itemService.minLevel()"
+        (ngModelChange)="itemService.minLevel.set($event || null); onSearch()"
+        aria-label="Niveau minimum"
+      />
+      <span class="level-filter__sep" aria-hidden="true">–</span>
+      <input
+        type="number" min="0" max="230" placeholder="Max"
+        class="level-input"
+        [ngModel]="itemService.maxLevel()"
+        (ngModelChange)="itemService.maxLevel.set($event || null); onSearch()"
+        aria-label="Niveau maximum"
+      />
+      @if (itemService.minLevel() !== null || itemService.maxLevel() !== null) {
+        <button class="level-clear" (click)="itemService.clearLevelFilter(); onSearch()" aria-label="Effacer le filtre de niveau">✕</button>
+      }
+    </div>
+
+    <!-- Filtre par rareté -->
+    <div class="filter-section rarity-filter">
+      @for (r of itemService.RARITIES; track r.value) {
+        <button
+          class="rarity-pill"
+          [class.rarity-pill--active]="itemService.selectedRarities().has(r.value)"
+          [style.--rarity-color]="r.color"
+          (click)="itemService.toggleRarity(r.value); onSearch()"
+          [attr.aria-pressed]="itemService.selectedRarities().has(r.value)"
+          [attr.aria-label]="r.label"
+        >{{ r.label }}</button>
+      }
+    </div>
+
     @if (itemService.isLoading()) {
       <div class="loading" aria-live="polite">Recherche...</div>
     }
@@ -42,8 +137,11 @@
         </div>
       }
 
-      @if (searchQuery.length >= 2 && !itemService.isLoading() && itemService.searchResults().length === 0) {
-        <div class="no-results">Aucun résultat pour "{{ searchQuery }}"</div>
+      @if (!itemService.isLoading() && itemService.searchResults().length === 0) {
+        <div class="no-results">
+          @if (searchQuery) { Aucun résultat pour "{{ searchQuery }}" }
+          @else { Aucun item trouvé }
+        </div>
       }
     </div>
   </div>

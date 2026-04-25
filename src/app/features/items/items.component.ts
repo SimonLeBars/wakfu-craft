@@ -24,6 +24,29 @@ export class ItemsComponent {
   protected readonly sessionService = inject(SessionService);
 
   searchQuery = '';
+  protected readonly filterOpen      = signal(false);
+  protected readonly collapsedTypeIds = signal<Set<number>>(new Set());
+
+  protected readonly visibleTypeList = computed(() => {
+    const collapsed = this.collapsedTypeIds();
+    return this.itemService.typeList().filter(e => e.parentIds.every(id => !collapsed.has(id)));
+  });
+
+  constructor() {
+    this.itemService.search('');
+    this.itemService.loadItemTypes().then(() => {
+      this.collapsedTypeIds.set(
+        new Set(this.itemService.typeList().filter(e => e.hasChildren).map(e => e.node.id)),
+      );
+    });
+  }
+
+  protected toggleCollapse(typeId: number): void {
+    const next = new Set(this.collapsedTypeIds());
+    if (next.has(typeId)) next.delete(typeId);
+    else next.add(typeId);
+    this.collapsedTypeIds.set(next);
+  }
 
   // ── Dialog d'ajout à la session ────────────────────────────────────────────
   protected readonly addDialogVisible  = signal(false);

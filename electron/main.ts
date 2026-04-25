@@ -141,9 +141,11 @@ function registerIpcHandlers(db: DatabaseService): void {
 
   ipcMain.handle('debug:getUserDataPath', () => app.getPath('userData'));
 
+  ipcMain.handle('items:getTypes', () => db.getItemTypes());
+
   // Recherche d'items par nom
-  ipcMain.handle('items:search', (_event, query: string, lang: string = 'fr') => {
-    return db.searchItems(query, lang);
+  ipcMain.handle('items:search', (_event, query: string, lang: string = 'fr', typeIds: number[] = [], minLevel?: number, maxLevel?: number, rarities: number[] = []) => {
+    return db.searchItems(query, lang, typeIds, minLevel, maxLevel, rarities);
   });
 
   // Récupère la recette complète d'un item

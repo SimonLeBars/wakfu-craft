@@ -17,6 +17,12 @@ export interface Recipe {
   ingredients:     RecipeIngredient[];
 }
 
+export interface ItemType {
+  id:        number;
+  parent_id: number | null;
+  name:      Record<string, string>;
+}
+
 export interface WakfuItem {
   id:        number;
   name:      Record<string, string>;
@@ -81,7 +87,8 @@ export interface ElectronAPI {
     count?: number;
   }) => void) => void;
   debugReadFile: (filename: string) => Promise<unknown>;
-  searchItems:       (query: string, lang?: string) => Promise<WakfuItem[]>;
+  getItemTypes:      () => Promise<ItemType[]>;
+  searchItems:       (query: string, lang?: string, typeIds?: number[], minLevel?: number, maxLevel?: number, rarities?: number[]) => Promise<WakfuItem[]>;
   getRecipeByItemId: (itemId: number) => Promise<Recipe | null>;
   setPrice:        (itemId: number, price: number) => Promise<boolean>;
   getLatestPrices:       (itemIds: number[]) => Promise<Record<number, number>>;

@@ -29,6 +29,11 @@ interface RawWakfuIngredient {
   quantity: number;
 }
 
+interface RawWakfuItemType {
+  definition?: { id?: number; parentId?: number };
+  title?: Record<string, string>;
+}
+
 interface RawWakfuRecipeResult {
   recipeId:              number;
   productedItemId:       number;
@@ -72,24 +77,26 @@ export class DatabaseService {
       } catch {
         return 0;
       }
-      const nameWords = nameStr.split(/\s+/).filter(Boolean);
-      const queryWords = this.normalize(query).split(/\s+/).filter(Boolean);
-
-      for (const qWord of queryWords) {
-        const threshold = qWord.length <= 3 ? 0 : qWord.length <= 6 ? 1 : 2;
-        const matched = nameWords.some(
-          nWord =>
-            Math.abs(nWord.length - qWord.length) <= threshold + 1 &&
-            this.levenshtein(qWord, nWord) <= threshold,
-        );
-        if (!matched) return 0;
-      }
-      return 1;
+      const nameClean = nameStr.replace(/[^a-z0-9]/g, '');
+      const queryClean = this.normalize(query).replace(/[^a-z0-9]/g, '');
+      return this.fuzzySubstring(queryClean, nameClean) ? 1 : 0;
     });
   }
 
   private normalize(s: string): string {
     return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+
+  private fuzzySubstring(needle: string, haystack: string): boolean {
+    if (haystack.includes(needle)) return true;
+    const threshold = needle.length <= 3 ? 0 : needle.length <= 6 ? 1 : 2;
+    for (let i = 0; i < haystack.length; i++) {
+      const maxLen = Math.min(haystack.length - i, needle.length + threshold);
+      for (let len = Math.max(1, needle.length - threshold); len <= maxLen; len++) {
+        if (this.levenshtein(needle, haystack.slice(i, i + len)) <= threshold) return true;
+      }
+    }
+    return false;
   }
 
   private levenshtein(a: string, b: string): number {
@@ -130,7 +137,10 @@ export class DatabaseService {
       this.db.pragma(`user_version = ${targetVersion}`);
     });
 
+    // FK doit être désactivé HORS transaction pour que SQLite l'applique pendant la migration
+    this.db.pragma('foreign_keys = OFF');
     migrate();
+    this.db.pragma('foreign_keys = ON');
     console.log(`[DB] Migration terminée (v${targetVersion}).`);
   }
 
@@ -147,6 +157,7 @@ export class DatabaseService {
     this.db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value);
   }
 
+  // #region Imports on Sync
   importData(file: string, data: unknown[]): number {
     this.db.pragma('foreign_keys = OFF');
     try {
@@ -155,6 +166,7 @@ export class DatabaseService {
       if (file === 'recipes')           return this.importRecipes(data as RawWakfuRecipe[]);
       if (file === 'recipeIngredients') return this.importRecipeIngredients(data as RawWakfuIngredient[]);
       if (file === 'recipeResults')     return this.importRecipeResults(data as RawWakfuRecipeResult[]);
+      if (file === 'itemTypes')         return this.importItemTypes(data as RawWakfuItemType[]);
       return 0;
     } finally {
       this.db.pragma('foreign_keys = ON');
@@ -172,7 +184,7 @@ export class DatabaseService {
         insert.run({
           id:       def?.id,
           name:     JSON.stringify(item.title),
-          type:     def?.baseParameters?.itemTypeId,
+          type:     def?.baseParameters?.itemTypeId != null ? Math.trunc(def.baseParameters.itemTypeId) : null,
           level:    def?.level,
           raw_data: JSON.stringify(item),
         });
@@ -193,7 +205,7 @@ export class DatabaseService {
         insert.run({
           id:       def?.id,
           name:     JSON.stringify(item.title),
-          type:     def?.itemTypeId,
+          type:     def?.itemTypeId != null ? Math.trunc(def.itemTypeId) : null,
           level:    def?.level,
           raw_data: JSON.stringify(item),
         });
@@ -251,18 +263,52 @@ export class DatabaseService {
     updateMany(data);
     return data.length;
   }
+  private importItemTypes(data: RawWakfuItemType[]): number {
+    const insert = this.db.prepare(`
+      INSERT OR REPLACE INTO item_types (id, parent_id, name) VALUES (@id, @parent_id, @name)
+    `);
+    const insertMany = this.db.transaction((types: RawWakfuItemType[]) => {
+      for (const t of types) {
+        const id = t.definition?.id;
+        if (!id) continue;
+        const name = Object.fromEntries(
+          Object.entries(t.title ?? {}).map(([lang, val]) => [lang, val.replace(/\{[^}]+\}/g, '').trim()]),
+        );
+        insert.run({ id, parent_id: t.definition?.parentId ?? null, name: JSON.stringify(name) });
+      }
+    });
+    insertMany(data);
+    return data.length;
+  }
 
-  searchItems(query: string, lang: string = 'fr'): WakfuItem[] {
+  // #endregion
+
+  getItemTypes(): { id: number; parent_id: number | null; name: Record<string, string> }[] {
+    const rows = this.db.prepare('SELECT id, parent_id, name FROM item_types ORDER BY id').all() as { id: number; parent_id: number | null; name: string }[];
+    return rows.map(r => ({ ...r, name: JSON.parse(r.name) as Record<string, string> }));
+  }
+
+  searchItems(query: string, lang: string = 'fr', typeIds: number[] = [], minLevel?: number, maxLevel?: number, rarities: number[] = []): WakfuItem[] {
     const rarityExpr = `COALESCE(
       json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
       json_extract(i.raw_data, '$.definition.rarity'),
       0
     ) AS rarity`;
+    const rarityExprWhere = `COALESCE(json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'), json_extract(i.raw_data, '$.definition.rarity'), 0)`;
+    const validTypeIds    = typeIds.filter(Number.isInteger);
+    const validRarities   = rarities.filter(Number.isInteger);
+    const typeFilter      = validTypeIds.length  > 0 ? `AND i.type IN (${validTypeIds.join(',')})` : '';
+    const rarityFilter    = validRarities.length > 0 ? `AND ${rarityExprWhere} IN (${validRarities.join(',')})` : '';
+    const levelFilter     = [
+      minLevel != null ? `AND i.level >= ${Math.trunc(minLevel)}` : '',
+      maxLevel != null ? `AND i.level <= ${Math.trunc(maxLevel)}` : '',
+    ].join(' ');
+    const filters = `${typeFilter} ${levelFilter} ${rarityFilter}`;
 
     const likeRows = this.db.prepare(`
       SELECT i.id, i.name, i.type, i.level, ${rarityExpr}
       FROM items i
-      WHERE json_extract(i.name, '$.${lang}') LIKE @query
+      WHERE json_extract(i.name, '$.${lang}') LIKE @query ${filters}
       ORDER BY i.level ASC
       LIMIT 50
     `).all({ query: `%${query}%` }) as ItemRow[];
@@ -273,7 +319,7 @@ export class DatabaseService {
       fuzzyRows = (this.db.prepare(`
         SELECT i.id, i.name, i.type, i.level, ${rarityExpr}
         FROM items i
-        WHERE fuzzy_match(i.name, @query, @lang) = 1
+        WHERE fuzzy_match(i.name, @query, @lang) = 1 ${filters}
         ORDER BY i.level ASC
         LIMIT 50
       `).all({ query, lang }) as ItemRow[]).filter(r => !likeIds.has(r.id));
