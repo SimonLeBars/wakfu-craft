@@ -63,4 +63,8 @@ export class IngredientRowComponent {
       await this.priceService.setPrice(this.ingredient().item_id, price);
     }
   }
+
+  async onSetNotForSale(): Promise<void> {
+    await this.priceService.setNotForSale(this.ingredient().item_id);
+  }
 }

@@ -171,7 +171,9 @@
         <div class="price-input-row">
           <span class="price-label">{{ itemService.selectedItem()!.name['fr'] }}</span>
           <div class="price-input-group">
-            @if (priceService.getPrice(itemService.selectedItem()!.id); as currentPrice) {
+            @if (priceService.isNotForSale(itemService.selectedItem()!.id)) {
+              <span class="badge-not-for-sale">Pas en vente</span>
+            } @else if (priceService.getPrice(itemService.selectedItem()!.id); as currentPrice) {
               <span class="current-price">{{ currentPrice | number }} k</span>
             }
             <input
@@ -191,6 +193,13 @@
               (click)="onSetSellPrice(sellPriceInput.value)"
               aria-label="Enregistrer le prix de vente">
               💾
+            </button>
+            <button class="btn-not-for-sale"
+              (click)="onSetSellNotForSale()"
+              [attr.aria-pressed]="priceService.isNotForSale(itemService.selectedItem()!.id)"
+              aria-label="Marquer comme pas en vente"
+              title="Pas en vente">
+              🚫
             </button>
           </div>
         </div>

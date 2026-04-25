@@ -373,6 +373,27 @@ h3 {
 
 .btn-save { @include btn-save; }
 
+.btn-not-for-sale {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 2px 4px;
+  opacity: 0.5;
+  transition: opacity var(--transition);
+  flex-shrink: 0;
+  &:hover { opacity: 1; }
+  &[aria-pressed='true'] { opacity: 1; }
+}
+
+.badge-not-for-sale {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #ef4444;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .btn-add-session {
   margin-left: auto;
   padding: 8px 14px;

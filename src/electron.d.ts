@@ -52,8 +52,9 @@ export interface WakfuItem {
 }
 
 export interface PriceEntry {
-  price:       number;
-  recorded_at: string;
+  price:        number;
+  recorded_at:  string;
+  not_for_sale: boolean;
 }
 
 export interface SessionItem {
@@ -115,6 +116,7 @@ export interface ElectronAPI {
   searchItems:       (query: string, lang?: string, typeIds?: number[], minLevel?: number, maxLevel?: number, rarities?: number[]) => Promise<WakfuItem[]>;
   getRecipeByItemId: (itemId: number) => Promise<Recipe | null>;
   setPrice:        (itemId: number, price: number) => Promise<boolean>;
+  setNotForSale:   (itemId: number)               => Promise<boolean>;
   getLatestPrices:       (itemIds: number[]) => Promise<Record<number, number>>;
   getLatestPriceEntries: (itemIds: number[]) => Promise<Record<number, PriceEntry>>;
   getPriceHistory: (itemId: number) => Promise<PriceEntry[]>;

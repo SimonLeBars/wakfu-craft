@@ -163,6 +163,11 @@ function registerIpcHandlers(db: DatabaseService): void {
     return true;
   });
 
+  ipcMain.handle('prices:setNotForSale', (_event, itemId: number) => {
+    db.setNotForSale(itemId);
+    return true;
+  });
+
   ipcMain.handle('prices:getLatestPrices', (_event, itemIds: number[]) => {
     return db.getLatestPrices(itemIds);
   });

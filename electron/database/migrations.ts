@@ -18,4 +18,5 @@ export const MIGRATIONS: string[] = [
   loadSql(3),
   loadSql(4),
   loadSql(5),
+  loadSql(6),
 ];

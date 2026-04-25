@@ -1,6 +1,6 @@
 import {
   Component, input, viewChild, OnDestroy,
-  ElementRef, ChangeDetectionStrategy, effect,
+  ElementRef, ChangeDetectionStrategy, effect, computed,
 } from '@angular/core';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { PriceEntry } from '@electron';
@@ -13,7 +13,7 @@ Chart.register(...registerables);
   template: `
     <div class="chart-container">
       <h3>Historique du prix</h3>
-      <div class="no-data" [class.hidden]="history().length >= 2">
+      <div class="no-data" [class.hidden]="pricedHistory().length >= 2">
         Pas assez de données — saisis au moins 2 prix à des dates différentes
       </div>
       <canvas #chartCanvas [class.hidden]="history().length < 2"></canvas>
@@ -51,15 +51,17 @@ export class PriceChartComponent implements OnDestroy {
   readonly history  = input<PriceEntry[]>([]);
   readonly itemName = input<string>('');
 
+  readonly pricedHistory = computed(() => this.history().filter(e => !e.not_for_sale));
+
   private readonly chartCanvas = viewChild<ElementRef<HTMLCanvasElement>>('chartCanvas');
 
   private chart: Chart | null = null;
 
   constructor() {
     effect(() => {
-      const h = this.history();
+      const priced = this.pricedHistory();
       this.destroyChart();
-      if (h.length >= 2) setTimeout(() => this.renderChart(), 0);
+      if (priced.length >= 2) setTimeout(() => this.renderChart(priced), 0);
     });
   }
 
@@ -67,11 +69,11 @@ export class PriceChartComponent implements OnDestroy {
     this.destroyChart();
   }
 
-  private renderChart(): void {
+  private renderChart(priced: PriceEntry[]): void {
     const canvas = this.chartCanvas()?.nativeElement;
     if (!canvas) return;
 
-    const labels = this.history().map(e =>
+    const labels = priced.map(e =>
       new Date(e.recorded_at).toLocaleDateString('fr-FR', {
         day: '2-digit', month: '2-digit', year: '2-digit',
         hour: '2-digit', minute: '2-digit',
@@ -84,7 +86,7 @@ export class PriceChartComponent implements OnDestroy {
         labels,
         datasets: [{
           label: this.itemName(),
-          data: this.history().map(e => e.price),
+          data: priced.map(e => e.price),
           borderColor: '#5865f2',
           backgroundColor: 'rgba(88, 101, 242, 0.1)',
           borderWidth: 2,

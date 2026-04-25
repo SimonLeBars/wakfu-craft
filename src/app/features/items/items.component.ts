@@ -94,6 +94,12 @@ export class ItemsComponent {
     }
   }
 
+  async onSetSellNotForSale(): Promise<void> {
+    const item = this.itemService.selectedItem();
+    if (!item) return;
+    await this.priceService.setNotForSale(item.id);
+  }
+
   onOpenAddDialog(): void {
     this.addDialogQuantity.set(1);
     this.addDialogVisible.set(true);

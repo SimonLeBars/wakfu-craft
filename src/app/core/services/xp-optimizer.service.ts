@@ -46,8 +46,8 @@ function resolveItemCost(
   visited:    Set<number>,
 ): CostResult {
   const entry      = prices[itemId];
-  const marketCost = entry ? entry.price * qty : null;
-  const stale      = !!entry && (now - new Date(entry.recorded_at).getTime() > ONE_DAY_MS);
+  const marketCost = entry && !entry.not_for_sale ? entry.price * qty : null;
+  const stale      = !!entry && !entry.not_for_sale && (now - new Date(entry.recorded_at).getTime() > ONE_DAY_MS);
   const recipe     = recipeMap.get(itemId);
 
   if (!recipe || visited.has(itemId)) {
@@ -58,7 +58,7 @@ function resolveItemCost(
   }
 
   const nextVisited = new Set(visited).add(itemId);
-  let craftTotal = 0, craftMissing = false, craftStale = false;
+  let craftTotal = 0, craftMissing = false, craftStale  = false;
 
   for (const ing of recipe.ingredients) {
     const r = resolveItemCost(ing.item_id, ing.quantity, recipeMap, prices, profLevels, now, nextVisited);
@@ -105,7 +105,7 @@ function wouldCraft(
   if ((profLevels[subRecipe.category_id] ?? 0) < subRecipe.recipe_level) return false;
   const r           = resolveItemCost(itemId, 1, recipeMap, prices, profLevels, now, visited);
   const marketEntry = prices[itemId];
-  return !marketEntry || r.cost === null || r.cost < marketEntry.price;
+  return !marketEntry || marketEntry.not_for_sale || r.cost === null || r.cost < marketEntry.price;
 }
 
 function collectSubCrafts(
@@ -180,9 +180,9 @@ export class XpOptimizerService {
           resolveIngredientsCost(r.ingredients, recipeMap, prices, profLevels, now);
 
         const resultEntry    = prices[r.item_id];
-        const resultStale    = !!resultEntry && (now - new Date(resultEntry.recorded_at).getTime() > ONE_DAY_MS);
+        const resultStale    = !!resultEntry && !resultEntry.not_for_sale && (now - new Date(resultEntry.recorded_at).getTime() > ONE_DAY_MS);
         const hasStalePrices = ingStale || resultStale;
-        const sellRevenue    = resultEntry ? resultEntry.price * r.result_quantity : null;
+        const sellRevenue    = resultEntry && !resultEntry.not_for_sale ? resultEntry.price * r.result_quantity : null;
         const profit         = ingredientCost !== null && sellRevenue !== null ? sellRevenue - ingredientCost : null;
         const xpPerCost      = effectiveXp > 0 && ingredientCost !== null && ingredientCost > 0
           ? effectiveXp / ingredientCost * 1000 : null;

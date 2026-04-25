@@ -54,7 +54,9 @@
       </div>
     } @else {
       <div class="price-input-group">
-        @if (priceService.getPrice(ingredient().item_id); as p) {
+        @if (priceService.isNotForSale(ingredient().item_id)) {
+          <span class="badge-not-for-sale">Pas en vente</span>
+        } @else if (priceService.getPrice(ingredient().item_id); as p) {
           <span class="current-price">{{ p | number }} k</span>
         }
         <input
@@ -76,6 +78,13 @@
           (click)="onSetPrice(priceInput.value)"
           [attr.aria-label]="'Enregistrer le prix de ' + ingredient().item_name['fr']">
           💾
+        </button>
+        <button class="btn-not-for-sale"
+          (click)="onSetNotForSale()"
+          [attr.aria-pressed]="priceService.isNotForSale(ingredient().item_id)"
+          [attr.aria-label]="'Marquer ' + ingredient().item_name['fr'] + ' comme pas en vente'"
+          title="Pas en vente">
+          🚫
         </button>
       </div>
     }
