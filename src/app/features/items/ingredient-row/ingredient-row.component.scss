@@ -145,55 +145,13 @@
 
 // ── Saisie du prix marché ────────────────────────────────────────────────────
 
-.price-input-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.current-price {
-  color: var(--success);
-  font-weight: 600;
-  font-size: 0.9rem;
-  min-width: 60px;
-  text-align: right;
-}
-
-.price-input {
-  @include price-field;
-  &--small { width: 80px; }
-}
-
-.price-date {
-  font-size: 0.7rem;
-  color: var(--text-dim);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.btn-save { @include btn-save; }
-
-.btn-not-for-sale {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 0.85rem;
-  padding: 2px 4px;
-  opacity: 0.5;
-  transition: opacity var(--transition);
-  flex-shrink: 0;
-  &:hover { opacity: 1; }
-  &[aria-pressed='true'] { opacity: 1; }
-}
-
-.badge-not-for-sale {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #ef4444;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
+.price-input-group  { @include price-input-group; flex-shrink: 0; }
+.current-price      { @include current-price; min-width: 60px; }
+.price-input        { @include price-field; &--small { width: 80px; } }
+.price-date         { @include price-date; }
+.btn-save           { @include btn-save; }
+.btn-not-for-sale   { @include btn-not-for-sale; }
+.badge-not-for-sale { @include badge-not-for-sale; }
 
 // ── Sous-ingrédients (niveau suivant) ────────────────────────────────────────
 
