@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { CraftSession, SessionItem, ShoppingItem } from '@electron';
+import { CraftSession, Recipe, SessionItem, ShoppingItem } from '@electron';
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
@@ -45,6 +45,27 @@ export class SessionService {
     const session = this.activeSession();
     if (!session) return -1;
     return window.electronAPI.sessions.addItem(session.id, itemId, quantity, parentId);
+  }
+
+  async addItemTree(
+    itemId:   number,
+    quantity: number,
+    craftIds: Set<number>,
+    recipe:   Recipe | null,
+    subRecs:  Partial<Record<number, Recipe | null>>,
+    visited   = new Set<number>(),
+    parentId: number | null = null,
+  ): Promise<void> {
+    const sessionItemId = await this.addItem(itemId, quantity, parentId);
+    if (!recipe) return;
+    for (const ing of recipe.ingredients) {
+      if (!craftIds.has(ing.item_id) || visited.has(ing.item_id)) continue;
+      visited.add(ing.item_id);
+      await this.addItemTree(
+        ing.item_id, ing.quantity * quantity, craftIds,
+        subRecs[ing.item_id] ?? null, subRecs, visited, sessionItemId,
+      );
+    }
   }
 
   async refreshData(): Promise<void> {

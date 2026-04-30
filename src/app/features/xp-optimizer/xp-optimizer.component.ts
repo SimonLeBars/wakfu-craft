@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ProfessionProfileService } from '../../core/services/profession-profile.service';
-import { XpOptimizerService } from '../../core/services/xp-optimizer.service';
-import { RarityColorPipe, RarityLabelPipe } from '../../shared/pipes/rarity.pipe';
+import { ProfessionProfileService } from '@services/profession-profile.service';
+import { XpOptimizerService } from '@services/xp-optimizer.service';
+import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
+import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
 
 @Component({
   selector: 'app-xp-optimizer',

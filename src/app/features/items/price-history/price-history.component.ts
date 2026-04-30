@@ -1,5 +1,5 @@
 import { Component, inject, signal, input, effect, ChangeDetectionStrategy } from '@angular/core';
-import { PriceService } from '../../../core/services/price.service';
+import { PriceService } from '@services/price.service';
 import { PriceChartComponent } from '../price-chart/price-chart.component';
 import { PriceEntry, WakfuItem } from '@electron';
 

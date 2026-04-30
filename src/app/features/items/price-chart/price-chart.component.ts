@@ -2,16 +2,14 @@ import {
   Component, input, output, viewChild, OnDestroy,
   ElementRef, ChangeDetectionStrategy, effect, computed, signal,
 } from '@angular/core';
-import { Chart, ChartConfiguration, registerables } from 'chart.js';
+import { Chart, registerables } from 'chart.js';
 import { PriceEntry } from '@electron';
+import {
+  ViewMode, ChartPoint, VIEW_OPTIONS,
+  formatDate, aggregateByDay, aggregateBy8Hours, buildChartConfig,
+} from './price-chart.utils';
 
 Chart.register(...registerables);
-
-type ViewMode = 'default' | 'week' | 'month';
-
-interface ChartPoint { label: string; price: number | null; }
-
-const FR_DAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 
 @Component({
   selector: 'app-price-chart',
@@ -182,18 +180,13 @@ const FR_DAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PriceChartComponent implements OnDestroy {
-  readonly history   = input<PriceEntry[]>([]);
-  readonly itemName  = input<string>('');
+  readonly history        = input<PriceEntry[]>([]);
+  readonly itemName       = input<string>('');
   readonly deleteEntry    = output<number>();
   readonly pendingDeleteId = signal<number | null>(null);
 
-  readonly viewMode = signal<ViewMode>('default');
-
-  readonly viewOptions: { value: ViewMode; label: string }[] = [
-    { value: 'default', label: 'Tout' },
-    { value: 'month',   label: 'Mois' },
-    { value: 'week',    label: 'Semaine' },
-  ];
+  readonly viewMode    = signal<ViewMode>('default');
+  readonly viewOptions = VIEW_OPTIONS;
 
   readonly pricedHistory = computed(() => this.history().filter(e => !e.not_for_sale));
 
@@ -202,10 +195,7 @@ export class PriceChartComponent implements OnDestroy {
     const mode   = this.viewMode();
 
     if (mode === 'default') {
-      return priced.map(e => ({
-        label: formatDate(e.recorded_at),
-        price: e.price,
-      }));
+      return priced.map(e => ({ label: formatDate(e.recorded_at), price: e.price }));
     }
 
     const now    = new Date();
@@ -214,7 +204,6 @@ export class PriceChartComponent implements OnDestroy {
     cutoff.setHours(0, 0, 0, 0);
 
     const filtered = priced.filter(e => new Date(e.recorded_at) >= cutoff);
-
     return mode === 'month'
       ? aggregateByDay(filtered, cutoff, now)
       : aggregateBy8Hours(filtered, cutoff, now);
@@ -256,54 +245,7 @@ export class PriceChartComponent implements OnDestroy {
   private renderChart(points: ChartPoint[]): void {
     const canvas = this.chartCanvas()?.nativeElement;
     if (!canvas) return;
-
-    const config: ChartConfiguration = {
-      type: 'line',
-      data: {
-        labels: points.map(p => p.label),
-        datasets: [{
-          label: this.itemName(),
-          data: points.map(p => p.price),
-          borderColor: '#5865f2',
-          backgroundColor: 'rgba(88, 101, 242, 0.1)',
-          borderWidth: 2,
-          pointBackgroundColor: '#5865f2',
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          fill: true,
-          tension: 0.3,
-          spanGaps: true,
-        }],
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => ctx.parsed.y !== null
-                ? `${ctx.parsed.y.toLocaleString('fr-FR')} k`
-                : 'Aucune donnée',
-            },
-          },
-        },
-        scales: {
-          x: {
-            ticks: { color: '#666', maxRotation: 45, font: { size: 10 } },
-            grid: { color: '#1e1e32' },
-          },
-          y: {
-            ticks: {
-              color: '#666',
-              callback: val => `${Number(val).toLocaleString('fr-FR')} k`,
-            },
-            grid: { color: '#1e1e32' },
-          },
-        },
-      },
-    };
-
-    this.chart = new Chart(canvas, config);
+    this.chart = new Chart(canvas, buildChartConfig(points, this.itemName()));
   }
 
   private destroyChart(): void {
@@ -312,70 +254,4 @@ export class PriceChartComponent implements OnDestroy {
       this.chart = null;
     }
   }
-}
-
-function formatDate(recorded_at: string): string {
-  return new Date(recorded_at).toLocaleDateString('fr-FR', {
-    day: '2-digit', month: '2-digit', year: '2-digit',
-    hour: '2-digit', minute: '2-digit',
-  });
-}
-
-function aggregateByDay(entries: PriceEntry[], cutoff: Date, now: Date): ChartPoint[] {
-  const map = new Map<string, number>();
-  for (const e of entries) {
-    const d   = new Date(e.recorded_at);
-    const key = dayKey(d);
-    const cur = map.get(key);
-    if (cur === undefined || e.price < cur) map.set(key, e.price);
-  }
-
-  const result: ChartPoint[] = [];
-  const cursor = new Date(cutoff);
-  const end    = new Date(now);
-  end.setHours(23, 59, 59, 999);
-
-  while (cursor <= end) {
-    const key    = dayKey(cursor);
-    const [y, m, d] = key.split('-');
-    result.push({ label: `${d}/${m}/${y.slice(2)}`, price: map.get(key) ?? null });
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return result;
-}
-
-function aggregateBy8Hours(entries: PriceEntry[], cutoff: Date, now: Date): ChartPoint[] {
-  const map = new Map<string, number>();
-  for (const e of entries) {
-    const d      = new Date(e.recorded_at);
-    const bucket = Math.floor(d.getHours() / 8) * 8;
-    const key    = `${dayKey(d)}-${pad(bucket)}`;
-    const cur    = map.get(key);
-    if (cur === undefined || e.price < cur) map.set(key, e.price);
-  }
-
-  const result: ChartPoint[] = [];
-  const cursor = new Date(cutoff);
-  const currentBucket = Math.floor(now.getHours() / 8) * 8;
-  const end = new Date(now);
-  end.setHours(currentBucket, 0, 0, 0);
-
-  while (cursor <= end) {
-    const key    = `${dayKey(cursor)}-${pad(cursor.getHours())}`;
-    const day    = FR_DAYS[cursor.getDay()];
-    const m      = pad(cursor.getMonth() + 1);
-    const d      = pad(cursor.getDate());
-    const h      = pad(cursor.getHours());
-    result.push({ label: `${day} ${d}/${m} ${h}h`, price: map.get(key) ?? null });
-    cursor.setHours(cursor.getHours() + 8);
-  }
-  return result;
-}
-
-function dayKey(d: Date): string {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-function pad(n: number): string {
-  return String(n).padStart(2, '0');
 }

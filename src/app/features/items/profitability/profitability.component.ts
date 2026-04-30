@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { ProfitabilityService } from '../../../core/services/profitability.service';
-import { ItemService } from '../../../core/services/item.service';
+import { ProfitabilityService } from '@services/profitability.service';
+import { ItemService } from '@services/item.service';
 import { ChangeDetectionStrategy } from '@angular/core';
 
 @Component({

@@ -1,11 +1,12 @@
 import { Component, input, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { DecimalPipe, DatePipe } from '@angular/common';
 import { RecipeIngredient, Recipe } from '@electron';
-import { ItemService } from '../../../core/services/item.service';
-import { PriceService } from '../../../core/services/price.service';
-import { ProfitabilityService } from '../../../core/services/profitability.service';
-import { RarityColorPipe, RarityLabelPipe } from '../../../shared/pipes/rarity.pipe';
-import { CopyBtnComponent } from '../../../shared/components/copy-btn.component';
+import { ItemService } from '@services/item.service';
+import { PriceService } from '@services/price.service';
+import { ProfitabilityService } from '@services/profitability.service';
+import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
+import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
+import { CopyBtnComponent } from '@shared/components/copy-btn.component';
 
 @Component({
   selector: 'app-ingredient-row',

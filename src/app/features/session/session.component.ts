@@ -1,12 +1,14 @@
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { SessionService } from '../../core/services/session.service';
-import { PriceService } from '../../core/services/price.service';
-import { ProfessionProfileService } from '../../core/services/profession-profile.service';
+import { SessionService } from '@services/session.service';
+import { PriceService } from '@services/price.service';
+import { ProfessionProfileService } from '@services/profession-profile.service';
 import { CraftSession, XpRecipe } from '@electron';
-import { RarityColorPipe, RarityLabelPipe } from '../../shared/pipes/rarity.pipe';
-import { CopyBtnComponent } from '../../shared/components/copy-btn.component';
+import { computeEffectiveXp } from '@services/xp-optimizer.utils';
+import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
+import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
+import { CopyBtnComponent } from '@shared/components/copy-btn.component';
 
 @Component({
   selector: 'app-session',
@@ -60,18 +62,8 @@ export class SessionComponent implements OnInit {
     return this.sessionService.sessionItems().reduce((sum, item) => {
       const recipe = recipeMap.get(item.item_id);
       if (!recipe) return sum;
-      const playerLevel = levels[recipe.category_id] ?? 1;
-      const gap = recipe.recipe_level - playerLevel;
-      let successRate: number, xpMultiplier: number;
-      if (gap > 0) {
-        successRate  = Math.max(0.1, (10 - gap) / 10);
-        xpMultiplier = 1 + gap * 0.1;
-      } else {
-        successRate  = 1;
-        const below  = -gap;
-        xpMultiplier = below <= 10 ? 1 : below < 20 ? (20 - below) / 10 : 0;
-      }
-      return sum + recipe.xp_ratio * xpMultiplier * successRate * item.craft_quantity;
+      const gap = recipe.recipe_level - (levels[recipe.category_id] ?? 1);
+      return sum + computeEffectiveXp(recipe.xp_ratio, gap) * item.craft_quantity;
     }, 0);
   });
 

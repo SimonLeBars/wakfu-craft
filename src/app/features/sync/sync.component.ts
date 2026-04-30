@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
-import { SyncService } from '../../core/services/sync.service';
+import { SyncService } from '@services/sync.service';
 
 @Component({
   selector: 'app-sync',

@@ -487,12 +487,12 @@ export class DatabaseService {
     if (itemIds.length === 0) return {};
     const placeholders = itemIds.map(() => '?').join(',');
     const rows = this.db.prepare(`
-      SELECT item_id, price, recorded_at, not_for_sale FROM price_history p1
+      SELECT rowid AS id, item_id, price, recorded_at, not_for_sale FROM price_history p1
       WHERE item_id IN (${placeholders})
       AND recorded_at = (SELECT MAX(recorded_at) FROM price_history p2 WHERE p2.item_id = p1.item_id)
     `).all(...itemIds) as PriceEntryRow[];
     return Object.fromEntries(rows.map(r => [r.item_id, {
-      price: r.price, recorded_at: r.recorded_at, not_for_sale: !!r.not_for_sale,
+      id: r.id, price: r.price, recorded_at: r.recorded_at, not_for_sale: !!r.not_for_sale,
     }]));
   }
 

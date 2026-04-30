@@ -1,11 +1,12 @@
 import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { GridConfig, GridRow, WakfuItem } from '@electron';
-import { RarityColorPipe, RarityLabelPipe } from '../../shared/pipes/rarity.pipe';
+import { GridRow, WakfuItem } from '@electron';
+import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
+import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
 import { OcrStateService, EditableRow } from './ocr-state.service';
-import { PriceService } from '../../core/services/price.service';
+import { PriceService } from '@services/price.service';
+import { itemDisplayName, matchRow, loadGrid, saveGrid } from './ocr-capture.utils';
 
-const GRID_STORAGE_KEY = 'ocr_grid';
 const COL_LABELS = ['Nom', 'Lvl', 'Qté', 'Prix'] as const;
 
 @Component({
@@ -19,12 +20,12 @@ export class OcrCaptureComponent {
   private readonly state        = inject(OcrStateService);
   private readonly priceService = inject(PriceService);
 
-  protected readonly colLabels = COL_LABELS;
+  protected readonly colLabels      = COL_LABELS;
+  protected readonly itemDisplayName = itemDisplayName;
 
-  protected readonly savedGrid = signal<GridConfig | null>(this.loadGrid());
+  protected readonly savedGrid = signal(loadGrid());
   protected readonly scanning  = signal(false);
 
-  // État persistant via le service (survit aux changements d'onglet)
   protected readonly tableRows  = this.state.tableRows;
   protected readonly editRows   = this.state.editRows;
   protected readonly savedCount = this.state.savedCount;
@@ -97,7 +98,7 @@ export class OcrCaptureComponent {
   }
 
   protected selectSuggestion(rowIndex: number, item: WakfuItem): void {
-    const name = item.name['fr'] ?? Object.values(item.name)[0] ?? '';
+    const name = itemDisplayName(item);
     this.editRows.update(rows => rows.map((r, i) =>
       i === rowIndex
         ? { ...r, itemId: item.id, rarity: item.rarity, nameInput: `${name} (Niv. ${item.level})` }
@@ -121,10 +122,6 @@ export class OcrCaptureComponent {
     ));
   }
 
-  protected itemDisplayName(item: WakfuItem): string {
-    return item.name['fr'] ?? Object.values(item.name)[0] ?? '?';
-  }
-
   async saveAllPrices(): Promise<void> {
     this.saving.set(true);
     try {
@@ -143,7 +140,7 @@ export class OcrCaptureComponent {
     const grid = await window.electronAPI.ocr.openGridOverlay(this.savedGrid() ?? undefined);
     if (grid) {
       this.savedGrid.set(grid);
-      localStorage.setItem(GRID_STORAGE_KEY, JSON.stringify(grid));
+      saveGrid(grid);
       this.status.set('Grille enregistrée.');
     } else {
       this.status.set('Configuration annulée.');
@@ -156,44 +153,7 @@ export class OcrCaptureComponent {
         return { itemId: null, rarity: null, nameInput: r.name, price: r.price };
       }
       const results = await window.electronAPI.searchItems(r.name.trim(), 'fr');
-      const candidates = r.level !== null
-        ? results.filter(i => i.level === r.level)
-        : results.length === 1 ? results : [];
-      if (candidates.length === 0) {
-        return { itemId: null, rarity: null, nameInput: r.name, price: r.price };
-      }
-      const ocrName = r.name.trim().toLowerCase();
-      const match = candidates.reduce((best, item) => {
-        const itemName = this.itemDisplayName(item).toLowerCase();
-        const bestName = this.itemDisplayName(best).toLowerCase();
-        return this.levenshtein(ocrName, itemName) < this.levenshtein(ocrName, bestName) ? item : best;
-      });
-      const name = this.itemDisplayName(match);
-      return { itemId: match.id, rarity: match.rarity, nameInput: `${name} (Niv. ${match.level})`, price: r.price };
+      return matchRow(r, results);
     }));
-  }
-
-  private levenshtein(a: string, b: string): number {
-    const m = a.length, n = b.length;
-    const dp: number[] = Array.from({ length: n + 1 }, (_, j) => j);
-    for (let i = 1; i <= m; i++) {
-      let prev = dp[0];
-      dp[0] = i;
-      for (let j = 1; j <= n; j++) {
-        const temp = dp[j];
-        dp[j] = a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[j], dp[j - 1]);
-        prev = temp;
-      }
-    }
-    return dp[n];
-  }
-
-  private loadGrid(): GridConfig | null {
-    try {
-      const raw = localStorage.getItem(GRID_STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as GridConfig) : null;
-    } catch {
-      return null;
-    }
   }
 }
