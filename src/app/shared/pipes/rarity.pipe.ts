@@ -8,7 +8,8 @@ export class RarityColorPipe implements PipeTransform {
       case 3: return '#f97316';
       case 4: return '#facc15';
       case 5: return '#a855f7';
-      case 6: return '#f472b6';
+      case 6: return '#60a5fa';
+      case 7: return '#f472b6';
       default: return '#6b7280';
     }
   }
@@ -22,7 +23,8 @@ export class RarityLabelPipe implements PipeTransform {
       case 3: return 'Mythique';
       case 4: return 'Légendaire';
       case 5: return 'Relique';
-      case 6: return 'Épique';
+      case 6: return 'Souvenir';
+      case 7: return 'Épique';
       default: return 'Commun';
     }
   }

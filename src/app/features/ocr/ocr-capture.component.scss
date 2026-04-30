@@ -1,0 +1,411 @@
+// ── Layout ────────────────────────────────────────────────────────────────────
+
+.ocr-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--nav-height));
+  padding: 32px 32px 0;
+  color: #e2e2f0;
+  font-family: sans-serif;
+  overflow: hidden;
+}
+
+.ocr-title {
+  flex-shrink: 0;
+  margin: 0 0 24px;
+  font-size: 1.5rem;
+}
+
+.ocr-body {
+  flex: 1;
+  display: flex;
+  gap: 24px;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: 32px;
+}
+
+.ocr-left {
+  flex: 0 0 640px;
+  overflow-y: auto;
+}
+
+.ocr-right {
+  flex: 1;
+  min-width: 320px;
+  overflow-y: auto;
+}
+
+// ── Card ─────────────────────────────────────────────────────────────────────
+
+.ocr-card {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 10px;
+  padding: 20px;
+
+  h3 {
+    margin: 0 0 14px;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #a0a0d0;
+  }
+}
+
+.region-info  { font-family: monospace; font-size: 0.9rem; color: #4ade80; margin-bottom: 14px; }
+.region-empty { color: #666; font-style: italic; margin-bottom: 14px; }
+
+.grid-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+.btn-primary {
+  padding: 8px 16px;
+  border-radius: 7px;
+  border: 1px solid #3a3a5e;
+  background: transparent;
+  color: #e2e2f0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: border-color 0.15s;
+  &:hover { border-color: #5865f2; }
+}
+
+.btn-scan {
+  padding: 10px 20px;
+  border-radius: 7px;
+  border: 1px solid #5865f2;
+  background: transparent;
+  color: #5865f2;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.15s;
+  &:hover:not(:disabled) { background: #5865f2; color: white; }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+}
+
+.ocr-status { margin-top: 14px; font-size: 0.85rem; color: #888; }
+
+// ── Tableau résultats OCR ─────────────────────────────────────────────────────
+
+.scan-table-wrap {
+  margin-top: 18px;
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #2a2a3e;
+}
+
+.scan-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+
+  th {
+    background: #0f0f1a;
+    color: #a0a0d0;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 8px 12px;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 1px solid #2a2a3e;
+  }
+
+  td {
+    padding: 6px 12px;
+    border-bottom: 1px solid #1a1a2e;
+    color: #c8c8e0;
+    vertical-align: middle;
+  }
+}
+
+.cell-name  { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cell-num   { text-align: right; font-family: monospace; color: #a0a0d0; }
+.cell-price { text-align: right; font-family: monospace; font-weight: 600; color: #4ade80; }
+
+// ── Ligne debug ───────────────────────────────────────────────────────────────
+
+.debug-row td {
+  background: #0f0f1a;
+  padding: 8px 12px 10px;
+  border-bottom: 2px solid #2a2a3e;
+}
+
+.debug-cells {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.debug-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 80px;
+}
+
+.debug-col-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #555;
+}
+
+.debug-img {
+  display: block;
+  height: 28px;
+  width: auto;
+  border: 1px solid #2a2a3e;
+  border-radius: 3px;
+  image-rendering: pixelated;
+  background: white;
+}
+
+.debug-raw {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #888;
+  background: #1a1a2e;
+  padding: 2px 5px;
+  border-radius: 3px;
+  white-space: pre;
+}
+
+// ── Panneau étapes de prétraitement ───────────────────────────────────────────
+
+.stages-panel {
+  margin-top: 20px;
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.stages-title {
+  margin: 0 0 14px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a0a0d0;
+}
+
+.stages-col {
+  margin-bottom: 14px;
+  &:last-child { margin-bottom: 0; }
+}
+
+.stages-col-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #a0a0d0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stages-row {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.stage-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.stage-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+}
+
+.stage-img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: none;
+  border: 1px solid #2a2a3e;
+  border-radius: 3px;
+  image-rendering: pixelated;
+  background: white;
+}
+
+// ── Tableau saisie des prix ───────────────────────────────────────────────────
+
+.price-card { height: fit-content; }
+
+.price-table-wrap {
+  border-radius: 8px;
+  border: 1px solid #2a2a3e;
+  margin-bottom: 14px;
+  padding-bottom: 260px;
+}
+
+.price-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+
+  th {
+    background: #0f0f1a;
+    color: #a0a0d0;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 8px 12px;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 1px solid #2a2a3e;
+  }
+
+  td {
+    padding: 4px 8px;
+    border-bottom: 1px solid #1a1a2e;
+    vertical-align: middle;
+  }
+
+  tr.row-matched td { background: rgba(74, 222, 128, 0.04); }
+  tr:last-child td  { border-bottom: none; }
+}
+
+.price-cell-name  { width: 100%; }
+.price-cell-price { width: 160px; }
+
+// ── Input saisie ──────────────────────────────────────────────────────────────
+
+.price-input {
+  width: 100%;
+  padding: 5px 8px;
+  background: #0f0f1a;
+  border: 1px solid #2a2a3e;
+  border-radius: 5px;
+  color: #e2e2f0;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+
+  &:focus { border-color: #5865f2; }
+
+  &.input-invalid {
+    border-color: #f87171;
+    &:focus { border-color: #f87171; }
+  }
+
+  &.price-num {
+    text-align: right;
+    font-family: monospace;
+    color: #4ade80;
+    -moz-appearance: textfield;
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button { appearance: none; }
+  }
+}
+
+// ── Autocomplete ──────────────────────────────────────────────────────────────
+
+.autocomplete-wrap { position: relative; }
+
+.name-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rarity-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.suggestions-list {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: #12122a;
+  border: 1px solid #3a3a5e;
+  border-radius: 6px;
+  list-style: none;
+  padding: 4px 0;
+  margin: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+
+  &:hover { background: #252545; }
+}
+
+.sugg-rarity {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sugg-name {
+  flex: 1;
+  color: #e2e2f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sugg-meta {
+  font-size: 0.75rem;
+  color: #888;
+  flex-shrink: 0;
+}
+
+// ── Actions sauvegarde ────────────────────────────────────────────────────────
+
+.price-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-save-prices {
+  padding: 9px 20px;
+  border-radius: 7px;
+  border: 1px solid #4ade80;
+  background: transparent;
+  color: #4ade80;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.15s;
+
+  &:hover:not(:disabled) { background: #4ade80; color: #0f0f1a; }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+}
+
+.save-feedback {
+  font-size: 0.85rem;
+  color: #4ade80;
+}

@@ -83,11 +83,21 @@ export interface CraftSession {
   item_count:  number;
 }
 
-export interface CaptureRegion {
+export interface GridConfig {
   x: number;
   y: number;
-  width: number;
-  height: number;
+  colWidths: number[];
+  rowHeights: number[];
+}
+
+export interface GridRow {
+  name: string;
+  level: number | null;
+  quantity: number | null;
+  price: number | null;
+  debugImages: [string, string, string, string];
+  rawTexts:    [string, string, string, string];
+  stageImages?: { label: string; src: string }[][];
 }
 
 export interface ElectronAPI {
@@ -121,8 +131,8 @@ export interface ElectronAPI {
   getLatestPriceEntries: (itemIds: number[]) => Promise<Record<number, PriceEntry>>;
   getPriceHistory: (itemId: number) => Promise<PriceEntry[]>;
   ocr: {
-    startSelection: ()                      => Promise<CaptureRegion | null>;
-    capture:        (region: CaptureRegion) => Promise<{ price: number | null; debugImage: string; rawText: string } | null>;
+    openGridOverlay: (config?: GridConfig) => Promise<GridConfig | null>;
+    captureGrid:     (grid: GridConfig)    => Promise<GridRow[] | null>;
   };
   sessions: {
     getAll:          ()                                                                                     => Promise<CraftSession[]>;

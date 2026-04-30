@@ -1,0 +1,194 @@
+<div class="ocr-page">
+  <h2 class="ocr-title">Capture HDV par OCR</h2>
+  <div class="ocr-body">
+
+    <!-- Gauche : grille OCR + debug -->
+    <div class="ocr-left">
+      <section class="ocr-card">
+        <h3>Grille de capture</h3>
+        @if (savedGrid()) {
+          <p class="region-info">
+            {{ savedGrid()!.colWidths.length }} colonnes &nbsp;×&nbsp; {{ savedGrid()!.rowHeights.length }} lignes
+            &nbsp;—&nbsp; {{ gridSize() }}
+            &nbsp;—&nbsp; position ({{ savedGrid()!.x }}, {{ savedGrid()!.y }})
+          </p>
+        } @else {
+          <p class="region-empty">Aucune grille configurée</p>
+        }
+        <div class="grid-actions">
+          <button class="btn-primary" (click)="openGridOverlay()">
+            Configurer la grille
+          </button>
+          <button
+            class="btn-scan"
+            (click)="scanTable()"
+            [disabled]="!savedGrid() || scanning()"
+            [attr.aria-busy]="scanning()"
+          >
+            @if (scanning()) { Analyse… } @else { Scanner le tableau }
+          </button>
+        </div>
+
+        @if (status()) {
+          <p class="ocr-status" role="status" aria-live="polite">{{ status() }}</p>
+        }
+
+        @if (tableRows()) {
+          <div class="scan-table-wrap">
+            <table class="scan-table" aria-label="Résultats du scan HDV">
+              <thead>
+                <tr>
+                  <th scope="col">Nom</th>
+                  <th scope="col">Lvl</th>
+                  <th scope="col">Qté</th>
+                  <th scope="col">Prix</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of tableRows()!; track $index) {
+                  <tr>
+                    <td class="cell-name">{{ row.name || '—' }}</td>
+                    <td class="cell-num">{{ row.level ?? '—' }}</td>
+                    <td class="cell-num">{{ row.quantity ?? '—' }}</td>
+                    <td class="cell-price">
+                      @if (row.price !== null) {
+                        {{ row.price | number:'1.0-0' }}&thinsp;k
+                      } @else { — }
+                    </td>
+                  </tr>
+                  <tr class="debug-row">
+                    <td colspan="4">
+                      <div class="debug-cells">
+                        @for (i of [0, 1, 2, 3]; track i) {
+                          <div class="debug-cell">
+                            <span class="debug-col-label">{{ colLabels[i] }}</span>
+                            <img class="debug-img" [src]="row.debugImages[i]" [alt]="'Cellule ' + colLabels[i]" />
+                            <code class="debug-raw">{{ row.rawTexts[i] || '(vide)' }}</code>
+                          </div>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      @if (firstRowStages()) {
+        <aside class="stages-panel" aria-label="Étapes de prétraitement">
+          <h3 class="stages-title">Prétraitement — Ligne 1 (taille réelle)</h3>
+          @for (colStages of firstRowStages()!; track $index; let i = $index) {
+            <div class="stages-col">
+              <span class="stages-col-label">{{ colLabels[i] }}</span>
+              <div class="stages-row">
+                @for (stage of colStages; track stage.label) {
+                  <div class="stage-item">
+                    <span class="stage-label">{{ stage.label }}</span>
+                    <img class="stage-img" [src]="stage.src" [alt]="colLabels[i] + ' — ' + stage.label" />
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </aside>
+      }
+    </div>
+
+    <!-- Droite : saisie des prix -->
+    @if (editRows().length > 0) {
+      <div class="ocr-right">
+        <section class="ocr-card price-card">
+          <h3>Saisie des prix</h3>
+          <div class="price-table-wrap">
+            <table class="price-table" aria-label="Tableau de saisie des prix">
+              <thead>
+                <tr>
+                  <th scope="col">Item</th>
+                  <th scope="col">Prix</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of editRows(); track $index; let i = $index) {
+                  <tr [class.row-matched]="row.itemId !== null">
+                    <td class="price-cell-name">
+                      <div class="autocomplete-wrap">
+                        <div class="name-field">
+                          @if (row.itemId !== null) {
+                            <span class="rarity-badge" [style.color]="row.rarity! | rarityColor">
+                              {{ row.rarity! | rarityLabel }}
+                            </span>
+                          }
+                          <input
+                            class="price-input"
+                            [class.input-invalid]="row.itemId === null"
+                            type="text"
+                            [value]="row.nameInput"
+                            (input)="onNameInput(i, $any($event.target).value)"
+                            (blur)="closeSuggestions()"
+                            [attr.aria-label]="'Item ligne ' + (i + 1)"
+                            autocomplete="off"
+                            spellcheck="false"
+                          />
+                        </div>
+                        @if (activeSuggRow() === i && suggestions().length > 0) {
+                          <ul class="suggestions-list" role="listbox" [attr.aria-label]="'Suggestions pour ligne ' + (i + 1)">
+                            @for (item of suggestions(); track item.id) {
+                              <li
+                                class="suggestion-item"
+                                role="option"
+                                (mousedown)="selectSuggestion(i, item)"
+                              >
+                                <span class="sugg-rarity" [style.background]="item.rarity | rarityColor" aria-hidden="true"></span>
+                                <span class="sugg-name">{{ itemDisplayName(item) }}</span>
+                                <span class="sugg-meta">Niv.&nbsp;{{ item.level }}</span>
+                              </li>
+                            }
+                          </ul>
+                        }
+                      </div>
+                    </td>
+                    <td class="price-cell-price">
+                      <input
+                        class="price-input price-num"
+                        [class.input-invalid]="row.price === null"
+                        type="number"
+                        min="0"
+                        step="1"
+                        style="width: 150px"
+                        [value]="row.price ?? ''"
+                        (input)="onPriceInput(i, $any($event.target).value)"
+                        [attr.aria-label]="'Prix ligne ' + (i + 1)"
+                      />
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="price-actions">
+            <button
+              class="btn-save-prices"
+              (click)="saveAllPrices()"
+              [disabled]="saving() || saveableCount() === 0"
+              [attr.aria-busy]="saving()"
+            >
+              @if (saving()) {
+                Enregistrement…
+              } @else {
+                Enregistrer {{ saveableCount() }} prix
+              }
+            </button>
+            @if (savedCount() > 0) {
+              <span class="save-feedback" role="status" aria-live="polite">
+                {{ savedCount() }} prix enregistrés
+              </span>
+            }
+          </div>
+        </section>
+      </div>
+    }
+
+  </div>
+</div>
