@@ -52,6 +52,7 @@ export interface WakfuItem {
 }
 
 export interface PriceEntry {
+  id:           number;
   price:        number;
   recorded_at:  string;
   not_for_sale: boolean;
@@ -129,7 +130,8 @@ export interface ElectronAPI {
   setNotForSale:   (itemId: number)               => Promise<boolean>;
   getLatestPrices:       (itemIds: number[]) => Promise<Record<number, number>>;
   getLatestPriceEntries: (itemIds: number[]) => Promise<Record<number, PriceEntry>>;
-  getPriceHistory: (itemId: number) => Promise<PriceEntry[]>;
+  getPriceHistory:    (itemId: number) => Promise<PriceEntry[]>;
+  deletePriceEntry:   (id: number)     => Promise<void>;
   ocr: {
     openGridOverlay: (config?: GridConfig) => Promise<GridConfig | null>;
     captureGrid:     (grid: GridConfig)    => Promise<GridRow[] | null>;

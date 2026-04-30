@@ -25,7 +25,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setNotForSale:   (itemId: number)               => ipcRenderer.invoke('prices:setNotForSale', itemId),
   getLatestPrices:       (itemIds: number[]) => ipcRenderer.invoke('prices:getLatestPrices', itemIds),
   getLatestPriceEntries: (itemIds: number[]) => ipcRenderer.invoke('prices:getLatestPriceEntries', itemIds),
-  getPriceHistory: (itemId: number) => ipcRenderer.invoke('prices:getHistory', itemId),
+  getPriceHistory:  (itemId: number) => ipcRenderer.invoke('prices:getHistory', itemId),
+  deletePriceEntry: (id: number)     => ipcRenderer.invoke('prices:deleteEntry', id),
   ocr: {
     openGridOverlay: (config?: unknown) => ipcRenderer.invoke('ocr:openGridOverlay', config),
     captureGrid:     (grid: unknown)    => ipcRenderer.invoke('ocr:captureGrid', grid),

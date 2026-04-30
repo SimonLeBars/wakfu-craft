@@ -3,9 +3,10 @@ import { PriceEntry } from '@electron';
 
 @Injectable({ providedIn: 'root' })
 export class PriceService {
-  readonly prices      = signal<Record<number, number>>({});
-  readonly priceDates  = signal<Record<number, string>>({});
-  readonly notForSale  = signal<Record<number, boolean>>({});
+  readonly prices             = signal<Record<number, number>>({});
+  readonly priceDates         = signal<Record<number, string>>({});
+  readonly notForSale         = signal<Record<number, boolean>>({});
+  readonly priceHistoryVersion = signal(0);
 
   async loadPricesForItems(itemIds: number[]): Promise<void> {
     const result = await window.electronAPI.getLatestPriceEntries(itemIds);
@@ -28,6 +29,7 @@ export class PriceService {
     this.prices.update(c    => ({ ...c, [itemId]: price }));
     this.priceDates.update(c => ({ ...c, [itemId]: now }));
     this.notForSale.update(c => ({ ...c, [itemId]: false }));
+    this.priceHistoryVersion.update(v => v + 1);
   }
 
   async setNotForSale(itemId: number): Promise<void> {
@@ -35,6 +37,7 @@ export class PriceService {
     const now = new Date().toISOString();
     this.priceDates.update(c => ({ ...c, [itemId]: now }));
     this.notForSale.update(c => ({ ...c, [itemId]: true }));
+    this.priceHistoryVersion.update(v => v + 1);
   }
 
   getPrice(itemId: number): number | null {
@@ -52,5 +55,9 @@ export class PriceService {
 
   async getHistory(itemId: number): Promise<PriceEntry[]> {
     return window.electronAPI.getPriceHistory(itemId);
+  }
+
+  async deletePriceEntry(id: number): Promise<void> {
+    await window.electronAPI.deletePriceEntry(id);
   }
 }

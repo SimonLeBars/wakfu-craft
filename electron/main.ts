@@ -180,6 +180,10 @@ function registerIpcHandlers(db: DatabaseService): void {
     return db.getPriceHistory(itemId);
   });
 
+  ipcMain.handle('prices:deleteEntry', (_event, id: number) => {
+    db.deletePriceEntry(id);
+  });
+
   ipcMain.handle('sessions:getAll', () => db.getSessions());
   ipcMain.handle('sessions:create', (_e, name: string) => db.createSession(name));
   ipcMain.handle('sessions:rename', (_e, id: number, name: string) => db.renameSession(id, name));

@@ -53,7 +53,7 @@ interface RecipeRow         { id: number; level: number; xp_ratio: number; categ
 interface IngredientRow     { quantity: number; item_id: number; item_name: string; item_level: number; item_type: number; rarity: number | null }
 interface PriceRow          { price: number }
 interface PriceItemRow      { item_id: number; price: number }
-interface PriceEntryRow     { item_id: number; price: number; recorded_at: string; not_for_sale: number }
+interface PriceEntryRow     { id: number; item_id: number; price: number; recorded_at: string; not_for_sale: number }
 interface RecipeIdRow           { id: number }
 interface SessionItemDbRow      { session_item_id: number; craft_quantity: number; result_quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null; parent_item_id: number | null }
 interface ExistingItemRow       { id: number; quantity: number }
@@ -498,10 +498,14 @@ export class DatabaseService {
 
   getPriceHistory(itemId: number): PriceEntry[] {
     const rows = this.db.prepare(`
-      SELECT price, recorded_at, not_for_sale FROM price_history
+      SELECT rowid AS id, price, recorded_at, not_for_sale FROM price_history
       WHERE item_id = @item_id ORDER BY recorded_at ASC
     `).all({ item_id: itemId }) as PriceEntryRow[];
-    return rows.map(r => ({ price: r.price, recorded_at: r.recorded_at, not_for_sale: !!r.not_for_sale }));
+    return rows.map(r => ({ id: r.id, price: r.price, recorded_at: r.recorded_at, not_for_sale: !!r.not_for_sale }));
+  }
+
+  deletePriceEntry(id: number): void {
+    this.db.prepare('DELETE FROM price_history WHERE rowid = @id').run({ id });
   }
 
   renameSession(id: number, name: string): void {
