@@ -4,6 +4,7 @@ import { RecipeIngredient, Recipe } from '@electron';
 import { ItemService } from '@services/item.service';
 import { PriceService } from '@services/price.service';
 import { ProfitabilityService } from '@services/profitability.service';
+import { ProfessionProfileService } from '@services/profession-profile.service';
 import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
 import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
 import { CopyBtnComponent } from '@shared/components/copy-btn.component';
@@ -26,6 +27,7 @@ export class IngredientRowComponent {
   protected readonly itemService          = inject(ItemService);
   protected readonly priceService         = inject(PriceService);
   protected readonly profitabilityService = inject(ProfitabilityService);
+  private   readonly profile              = inject(ProfessionProfileService);
 
   /** True si cet ingrédient est actuellement en mode "prix craft" */
   protected get isCraft(): boolean {
@@ -54,8 +56,20 @@ export class IngredientRowComponent {
   protected readonly showSubRecipe = signal(true);
   protected toggleSubRecipe(): void { this.showSubRecipe.update(v => !v); }
 
+  protected get availableSubRecipesForThis() {
+    return this.itemService.availableSubRecipes()[this.ingredient().item_id] ?? [];
+  }
+
+  protected hasEnoughLevelFor(recipe: Recipe): boolean {
+    return (this.profile.levels()[recipe.category_id] ?? 0) >= recipe.level;
+  }
+
   async onToggleCraftMode(): Promise<void> {
     await this.itemService.toggleCraftMode(this.ingredient().item_id);
+  }
+
+  async onSelectSubRecipe(recipe: Recipe): Promise<void> {
+    await this.itemService.selectSubRecipe(this.ingredient().item_id, recipe);
   }
 
   async onSetPrice(value: string): Promise<void> {

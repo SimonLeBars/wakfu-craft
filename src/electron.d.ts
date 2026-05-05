@@ -12,6 +12,7 @@ export interface Recipe {
   id:              number;
   level:           number;
   category_id:     number;
+  category_name:   Record<string, string>;
   xp_ratio:        number;
   result_quantity: number;
   ingredients:     RecipeIngredient[];
@@ -35,6 +36,7 @@ export interface XpRecipe {
   xp_ratio:        number;
   result_quantity: number;
   category_id:     number;
+  category_name:   Record<string, string>;
   item_id:         number;
   item_name:       Record<string, string>;
   item_level:      number;
@@ -67,6 +69,7 @@ export interface SessionItem {
   item_level:      number;
   rarity:          number;
   parent_item_id:  number | null;
+  recipe_id:       number | null;
 }
 
 export interface ShoppingItem {
@@ -125,7 +128,7 @@ export interface ElectronAPI {
   getRecipesByCategory: (categoryId: number) => Promise<XpRecipe[]>;
   getRecipesByItemIds:  (itemIds: number[])  => Promise<XpRecipe[]>;
   searchItems:       (query: string, lang?: string, typeIds?: number[], minLevel?: number, maxLevel?: number, rarities?: number[]) => Promise<WakfuItem[]>;
-  getRecipeByItemId: (itemId: number) => Promise<Recipe | null>;
+  getRecipesByItemId: (itemId: number) => Promise<Recipe[]>;
   setPrice:        (itemId: number, price: number) => Promise<boolean>;
   setNotForSale:   (itemId: number)               => Promise<boolean>;
   getLatestPrices:       (itemIds: number[]) => Promise<Record<number, number>>;
@@ -142,7 +145,7 @@ export interface ElectronAPI {
     rename:          (id: number, name: string)                                                             => Promise<void>;
     delete:          (id: number)                                                                           => Promise<void>;
     getItems:        (id: number)                                                                           => Promise<SessionItem[]>;
-    addItem:         (sessionId: number, itemId: number, qty: number, parentId: number | null) => Promise<number>;
+    addItem:         (sessionId: number, itemId: number, qty: number, parentId: number | null, recipeId: number | null) => Promise<number>;
     removeItem:      (sessionItemId: number)                                                                => Promise<void>;
     updateQty:       (sessionItemId: number, qty: number)                                                  => Promise<void>;
     getShoppingList: (sessionId: number)                                                                    => Promise<ShoppingItem[]>;

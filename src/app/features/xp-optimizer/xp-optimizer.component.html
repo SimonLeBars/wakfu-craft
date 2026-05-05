@@ -106,6 +106,12 @@
                         aria-label="Prix anciens"
                         title="Certains prix datent de plus d'un jour"></span>
                 }
+                @if (row.blockedSubCrafts.length > 0) {
+                  <span class="price-dot price-dot--level"
+                        role="img"
+                        aria-label="Craft moins cher possible avec un niveau de métier plus élevé"
+                        [title]="blockedTitle(row.blockedSubCrafts)"></span>
+                }
                 <span class="item-name">{{ row.item_name['fr'] }}</span>
                 <span class="badge-rarity" [style.color]="row.rarity | rarityColor">{{ row.rarity | rarityLabel }}</span>
                 @if (row.result_quantity > 1) {
@@ -179,6 +185,30 @@
               <li>
                 <span class="badge-rarity" [style.color]="sc.rarity | rarityColor">{{ sc.rarity | rarityLabel }}</span>
                 {{ sc.item_name['fr'] }}
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      @if (xp.dialogBlockedCrafts().length > 0) {
+        <div class="dialog-subcrafts dialog-blocked">
+          <p class="dialog-subcrafts-label">
+            Crafts moins chers mais niveau insuffisant
+          </p>
+          <ul class="subcrafts-list">
+            @for (bc of xp.dialogBlockedCrafts(); track bc.item_id) {
+              <li>
+                <label class="blocked-craft-label">
+                  <input
+                    type="checkbox"
+                    [checked]="xp.dialogCheckedBlocked().has(bc.item_id)"
+                    (change)="xp.toggleBlockedCraft(bc.item_id)"
+                    [attr.aria-label]="'Inclure le craft de ' + bc.item_name['fr']"
+                  />
+                  <span class="blocked-craft-name">{{ bc.item_name['fr'] }}</span>
+                  <span class="blocked-craft-hint">{{ bc.category_name['fr'] }} niv. {{ bc.required_level }}</span>
+                </label>
               </li>
             }
           </ul>

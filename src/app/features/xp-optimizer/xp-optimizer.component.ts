@@ -5,6 +5,7 @@ import { ProfessionProfileService } from '@services/profession-profile.service';
 import { XpOptimizerService } from '@services/xp-optimizer.service';
 import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
 import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
+import { BlockedCraft } from '@services/xp-optimizer.utils';
 
 @Component({
   selector: 'app-xp-optimizer',
@@ -42,5 +43,11 @@ export class XpOptimizerComponent {
       : abs >= 1_000
         ? (val / 1_000).toFixed(1) + ' K'
         : val.toFixed(0);
+  }
+
+  protected blockedTitle(crafts: BlockedCraft[]): string {
+    return crafts.map(c =>
+      `${c.item_name['fr']} serait moins cher à crafter\n  → ${c.category_name['fr']} niv. ${c.required_level} requis`
+    ).join('\n');
   }
 }

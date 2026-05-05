@@ -208,6 +208,28 @@
       @if (!itemService.selectedRecipe()) {
         <div class="no-recipe">Cet item n'a pas de recette de craft.</div>
       } @else {
+        @if (itemService.availableRecipes().length > 1) {
+          <div class="recipe-selector" role="group" aria-label="Choisir une recette">
+            @for (r of itemService.availableRecipes(); track r.id; let i = $index) {
+              <button
+                class="recipe-tab"
+                [class.recipe-tab--active]="itemService.selectedRecipe()!.id === r.id"
+                [class.recipe-tab--blocked]="!hasEnoughLevel(r)"
+                (click)="itemService.selectRecipe(r)"
+                [attr.aria-pressed]="itemService.selectedRecipe()!.id === r.id"
+                [title]="!hasEnoughLevel(r) ? (r.category_name['fr'] + ' niv. ' + r.level + ' requis') : ''"
+              >
+                Recette {{ i + 1 }}
+                @if (!hasEnoughLevel(r)) { <span class="recipe-tab__warn" aria-hidden="true">⚠</span> }
+              </button>
+            }
+          </div>
+        }
+        @if (!hasEnoughLevel(itemService.selectedRecipe()!)) {
+          <p class="recipe-level-warn">
+            ⚠ {{ itemService.selectedRecipe()!.category_name['fr'] }} niv. {{ itemService.selectedRecipe()!.level }} requis
+          </p>
+        }
         <div class="recipe-meta">
           <span>📊 Niveau de recette : {{ itemService.selectedRecipe()!.level }}</span>
           <span>⭐ XP : {{ itemService.selectedRecipe()!.xp_ratio }}</span>

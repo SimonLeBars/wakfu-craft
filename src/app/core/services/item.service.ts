@@ -21,10 +21,12 @@ export class ItemService {
 
   readonly searchResults        = signal<WakfuItem[]>([]);
   readonly selectedItem         = signal<WakfuItem | null>(null);
+  readonly availableRecipes     = signal<Recipe[]>([]);
   readonly selectedRecipe       = signal<Recipe | null>(null);
   readonly isLoading            = signal(false);
   readonly craftModeIngredients = signal<Set<number>>(new Set());
   readonly subRecipes           = signal<Partial<Record<number, Recipe | null>>>({});
+  readonly availableSubRecipes  = signal<Partial<Record<number, Recipe[]>>>({});
   readonly itemTypes            = signal<ItemType[]>([]);
   readonly selectedTypeIds      = signal<Set<number>>(new Set());
   readonly minLevel             = signal<number | null>(null);
@@ -140,17 +142,27 @@ export class ItemService {
 
   async selectItem(item: WakfuItem): Promise<void> {
     this.selectedItem.set(item);
+    this.availableRecipes.set([]);
     this.selectedRecipe.set(null);
     this.craftModeIngredients.set(new Set());
     this.subRecipes.set({});
+    this.availableSubRecipes.set({});
 
-    const recipe = await window.electronAPI.getRecipeByItemId(item.id);
+    const recipes = await window.electronAPI.getRecipesByItemId(item.id);
+    this.availableRecipes.set(recipes);
+    const recipe = recipes[0] ?? null;
     this.selectedRecipe.set(recipe);
 
     if (recipe) {
       const ids = [item.id, ...recipe.ingredients.map(i => i.item_id)];
       await this.priceService.loadPricesForItems(ids);
     }
+  }
+
+  async selectRecipe(recipe: Recipe): Promise<void> {
+    this.selectedRecipe.set(recipe);
+    const ids = [this.selectedItem()!.id, ...recipe.ingredients.map(i => i.item_id)];
+    await this.priceService.loadPricesForItems(ids);
   }
 
   async toggleCraftMode(itemId: number): Promise<void> {
@@ -164,15 +176,21 @@ export class ItemService {
       next.add(itemId);
       this.craftModeIngredients.set(next);
 
-      if (!(itemId in this.subRecipes())) {
-        const recipe = await window.electronAPI.getRecipeByItemId(itemId);
-        this.subRecipes.update(r => ({ ...r, [itemId]: recipe }));
+      if (!(itemId in this.availableSubRecipes())) {
+        const recipes = await window.electronAPI.getRecipesByItemId(itemId);
+        this.availableSubRecipes.update(r => ({ ...r, [itemId]: recipes }));
+        this.subRecipes.update(r => ({ ...r, [itemId]: recipes[0] ?? null }));
 
-        if (recipe) {
-          const subIds = recipe.ingredients.map(i => i.item_id);
-          await this.priceService.loadPricesForItems(subIds);
+        const first = recipes[0];
+        if (first) {
+          await this.priceService.loadPricesForItems(first.ingredients.map(i => i.item_id));
         }
       }
     }
+  }
+
+  async selectSubRecipe(itemId: number, recipe: Recipe): Promise<void> {
+    this.subRecipes.update(r => ({ ...r, [itemId]: recipe }));
+    await this.priceService.loadPricesForItems(recipe.ingredients.map(i => i.item_id));
   }
 }

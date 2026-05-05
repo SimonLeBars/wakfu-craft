@@ -3,6 +3,7 @@ import { DecimalPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ItemService } from '@services/item.service';
 import { PriceService } from '@services/price.service';
+import { ProfessionProfileService } from '@services/profession-profile.service';
 import { WakfuItem, Recipe } from '@electron';
 import { ProfitabilityComponent } from './profitability/profitability.component';
 import { SessionService } from '@services/session.service';
@@ -40,6 +41,7 @@ export class ItemsComponent {
   protected readonly itemService    = inject(ItemService);
   protected readonly priceService   = inject(PriceService);
   protected readonly sessionService = inject(SessionService);
+  protected readonly profile        = inject(ProfessionProfileService);
 
   searchQuery = '';
   protected readonly filterOpen       = signal(false);
@@ -51,6 +53,7 @@ export class ItemsComponent {
   });
 
   constructor() {
+    this.profile.load();
     this.itemService.search('');
     this.itemService.loadItemTypes().then(() => {
       this.collapsedTypeIds.set(
@@ -112,6 +115,10 @@ export class ItemsComponent {
 
   onCancelDialog(): void {
     this.addDialogVisible.set(false);
+  }
+
+  protected hasEnoughLevel(recipe: Recipe): boolean {
+    return (this.profile.levels()[recipe.category_id] ?? 0) >= recipe.level;
   }
 
   async onConfirmAdd(): Promise<void> {

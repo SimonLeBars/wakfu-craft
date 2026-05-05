@@ -174,16 +174,11 @@
 }
 
 .level-input {
+  @include input-base(var(--bg-surface));
   width: 58px;
   padding: 4px 6px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-input);
-  background: var(--bg-surface);
-  color: var(--text);
   font-size: 0.85rem;
   text-align: center;
-
-  &:focus { outline: none; border-color: var(--accent); }
   &::-webkit-outer-spin-button,
   &::-webkit-inner-spin-button { -webkit-appearance: none; }
 }
@@ -366,6 +361,29 @@ h3 {
   font-size: 0.85rem;
   transition: all var(--transition);
   &:hover { background: var(--accent); color: white; }
+}
+
+// ── Sélecteur de recette (multi-recettes) ────────────────────────────────────
+
+.recipe-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.recipe-tab { @include recipe-tab(5px 12px, 0.8rem); }
+
+.recipe-level-warn {
+  @include level-warn;
+  margin: 0 0 12px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+
+.recipe-tab__warn {
+  font-size: 0.75em;
+  margin-left: 3px;
 }
 
 

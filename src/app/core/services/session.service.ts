@@ -41,10 +41,11 @@ export class SessionService {
     itemId:   number,
     quantity: number,
     parentId: number | null = null,
+    recipeId: number | null = null,
   ): Promise<number> {
     const session = this.activeSession();
     if (!session) return -1;
-    return window.electronAPI.sessions.addItem(session.id, itemId, quantity, parentId);
+    return window.electronAPI.sessions.addItem(session.id, itemId, quantity, parentId, recipeId);
   }
 
   async addItemTree(
@@ -56,7 +57,7 @@ export class SessionService {
     visited   = new Set<number>(),
     parentId: number | null = null,
   ): Promise<void> {
-    const sessionItemId = await this.addItem(itemId, quantity, parentId);
+    const sessionItemId = await this.addItem(itemId, quantity, parentId, recipe?.id ?? null);
     if (!recipe) return;
     for (const ing of recipe.ingredients) {
       if (!craftIds.has(ing.item_id) || visited.has(ing.item_id)) continue;

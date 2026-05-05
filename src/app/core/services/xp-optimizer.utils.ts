@@ -23,12 +23,20 @@ export interface XpRow extends XpRecipe {
   score:            number | null;
   hasMissingPrices: boolean;
   hasStalePrices:   boolean;
+  blockedSubCrafts: BlockedCraft[];
 }
 
 export interface SubCraftItem {
   item_id:   number;
   item_name: Record<string, string>;
   rarity:    number;
+}
+
+export interface BlockedCraft {
+  item_id:        number;
+  item_name:      Record<string, string>;
+  category_name:  Record<string, string>;
+  required_level: number;
 }
 
 export function resolveItemCost(
@@ -110,14 +118,48 @@ export function collectSubCrafts(
   profLevels:  Record<number, number>,
   now:         number,
   visited:     Set<number>,
+  seen:        Set<number> = new Set(),
 ): SubCraftItem[] {
   const result: SubCraftItem[] = [];
   for (const ing of ingredients) {
+    if (seen.has(ing.item_id)) continue;
     if (!wouldCraft(ing.item_id, recipeMap, prices, profLevels, now, visited)) continue;
+    seen.add(ing.item_id);
     const subRecipe   = recipeMap.get(ing.item_id)!;
     const nextVisited = new Set(visited).add(ing.item_id);
     result.push({ item_id: ing.item_id, item_name: subRecipe.item_name, rarity: subRecipe.rarity });
-    result.push(...collectSubCrafts(subRecipe.ingredients, recipeMap, prices, profLevels, now, nextVisited));
+    result.push(...collectSubCrafts(subRecipe.ingredients, recipeMap, prices, profLevels, now, nextVisited, seen));
+  }
+  return result;
+}
+
+export function collectBlockedCrafts(
+  ingredients: { item_id: number; quantity: number }[],
+  recipeMap:   Map<number, XpRecipe>,
+  prices:      Record<number, PriceEntry>,
+  profLevels:  Record<number, number>,
+  now:         number,
+  visited:     Set<number>,
+  seen:        Set<number> = new Set(),
+): BlockedCraft[] {
+  const result: BlockedCraft[] = [];
+  for (const ing of ingredients) {
+    if (visited.has(ing.item_id) || seen.has(ing.item_id)) continue;
+    const recipe = recipeMap.get(ing.item_id);
+    if (!recipe) continue;
+    seen.add(ing.item_id);
+    if ((profLevels[recipe.category_id] ?? 0) < recipe.recipe_level) {
+      const { cost: ingCost } = resolveIngredientsCost(recipe.ingredients, recipeMap, prices, profLevels, now);
+      const craftPerUnit = ingCost !== null ? ingCost / recipe.result_quantity : null;
+      const marketEntry  = prices[ing.item_id];
+      const marketPrice  = marketEntry && !marketEntry.not_for_sale ? marketEntry.price : null;
+      if (craftPerUnit !== null && (marketPrice === null || craftPerUnit < marketPrice)) {
+        result.push({ item_id: ing.item_id, item_name: recipe.item_name, category_name: recipe.category_name, required_level: recipe.recipe_level });
+      }
+    } else if (wouldCraft(ing.item_id, recipeMap, prices, profLevels, now, visited)) {
+      const nextVisited = new Set(visited).add(ing.item_id);
+      result.push(...collectBlockedCrafts(recipe.ingredients, recipeMap, prices, profLevels, now, nextVisited, seen));
+    }
   }
   return result;
 }
@@ -160,8 +202,9 @@ export function buildXpRow(
   const xpPerCost      = effectiveXp > 0 && ingredientCost !== null && ingredientCost > 0
     ? effectiveXp / ingredientCost * 1000 : null;
   const xpTimesProfit  = effectiveXp > 0 && profit !== null ? effectiveXp * profit : null;
-  const score          = sortMode === 'xp-per-cost' ? xpPerCost : xpTimesProfit;
+  const score            = sortMode === 'xp-per-cost' ? xpPerCost : xpTimesProfit;
+  const blockedSubCrafts = collectBlockedCrafts(r.ingredients, recipeMap, prices, profLevels, now, new Set());
 
   return { ...r, gap, successRate, xpMultiplier, effectiveXp, ingredientCost, sellRevenue,
-           profit, xpPerCost, xpTimesProfit, score, hasMissingPrices, hasStalePrices };
+           profit, xpPerCost, xpTimesProfit, score, hasMissingPrices, hasStalePrices, blockedSubCrafts };
 }

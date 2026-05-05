@@ -4,10 +4,10 @@
   border: 1px solid var(--border);
 }
 
-@mixin input-base {
+@mixin input-base($bg: var(--bg-primary)) {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-input);
-  background: var(--bg-primary);
+  background: $bg;
   color: var(--text);
   font-size: 0.9rem;
   &:focus { outline: none; border-color: var(--accent); }
@@ -124,4 +124,37 @@
   color: #ef4444;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+@mixin recipe-tab($padding: 5px 12px, $font-size: 0.8rem) {
+  padding: $padding;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-input);
+  background: var(--bg-surface);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: $font-size;
+  transition: all var(--transition);
+
+  &:hover { border-color: var(--accent); color: var(--accent); }
+
+  &--active {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  &--blocked {
+    border-color: #f97316;
+    color: #f97316;
+    &.recipe-tab--active { background: color-mix(in srgb, #f97316 15%, transparent); }
+  }
+}
+
+@mixin level-warn {
+  border-radius: var(--radius-sm);
+  border: 1px solid #f97316;
+  color: #f97316;
+  background: color-mix(in srgb, #f97316 10%, transparent);
 }
