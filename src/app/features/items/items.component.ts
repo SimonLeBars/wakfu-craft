@@ -13,6 +13,39 @@ import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
 import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
 import { CopyBtnComponent } from '@shared/components/copy-btn.component';
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+interface ItemScanEntry {
+  item_id:    number;
+  item_name:  Record<string, string>;
+  item_level: number;
+}
+
+interface ItemScanGroup {
+  type_name: string;
+  missing:   ItemScanEntry[];
+  stale:     ItemScanEntry[];
+}
+
+function collectRecipeIngredients(
+  ingredients:      Recipe['ingredients'],
+  availableSubRecs: Partial<Record<number, Recipe[]>>,
+  visited:          Set<number> = new Set(),
+): Recipe['ingredients'] {
+  const result: Recipe['ingredients'] = [];
+  for (const ing of ingredients) {
+    if (visited.has(ing.item_id)) continue;
+    result.push(ing);
+    const alts = availableSubRecs[ing.item_id];
+    if (alts?.length) {
+      for (const alt of alts) {
+        result.push(...collectRecipeIngredients(alt.ingredients, availableSubRecs, new Set(visited).add(ing.item_id)));
+      }
+    }
+  }
+  return result;
+}
+
 function collectCraftSubItems(
   ingredients: Recipe['ingredients'],
   craftIds:    Set<number>,
@@ -72,6 +105,49 @@ export class ItemsComponent {
   // ── Dialog d'ajout à la session ────────────────────────────────────────────
   protected readonly addDialogVisible  = signal(false);
   protected readonly addDialogQuantity = signal(1);
+
+  protected readonly recipeScanGroups = computed((): ItemScanGroup[] => {
+    const recipe = this.itemService.selectedRecipe();
+    const item   = this.itemService.selectedItem();
+    if (!recipe || !item) return [];
+
+    const availableSubRecs = this.itemService.availableSubRecipes();
+    const dates            = this.priceService.priceDates();
+    const nfs              = this.priceService.notForSale();
+    const typeNames        = new Map(this.itemService.itemTypes().map(t => [t.id, t.name['fr'] ?? '']));
+    const now              = Date.now();
+
+    const groupMap = new Map<number, ItemScanGroup>();
+    const seen     = new Set<number>();
+    const getGroup = (typeId: number): ItemScanGroup => {
+      if (!groupMap.has(typeId)) {
+        groupMap.set(typeId, { type_name: typeNames.get(typeId) ?? `Type ${typeId}`, missing: [], stale: [] });
+      }
+      return groupMap.get(typeId)!;
+    };
+    const check = (id: number, name: Record<string, string>, level: number, typeId: number): void => {
+      if (seen.has(id)) return;
+      seen.add(id);
+      const dateStr = dates[id];
+      const isNfs   = nfs[id];
+      const entry   = { item_id: id, item_name: name, item_level: level };
+      if (!dateStr) getGroup(typeId).missing.push(entry);
+      else if (!isNfs && now - new Date(dateStr).getTime() > ONE_DAY_MS) getGroup(typeId).stale.push(entry);
+    };
+
+    check(item.id, item.name, item.level, item.type);
+    for (const ing of collectRecipeIngredients(recipe.ingredients, availableSubRecs)) {
+      check(ing.item_id, ing.item_name, ing.item_level, ing.item_type);
+    }
+
+    return [...groupMap.values()]
+      .sort((a, b) => a.type_name.localeCompare(b.type_name, 'fr'))
+      .map(g => ({
+        ...g,
+        missing: [...g.missing].sort((a, b) => a.item_level - b.item_level),
+        stale:   [...g.stale].sort((a, b) => a.item_level - b.item_level),
+      }));
+  });
 
   protected readonly craftSubItems = computed(() => {
     const recipe = this.itemService.selectedRecipe();

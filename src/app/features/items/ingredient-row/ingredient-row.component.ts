@@ -49,6 +49,12 @@ export class IngredientRowComponent {
   }
 
   /** Le toggle n'est affiché que si l'ingrédient est craftable ET qu'on n'a pas atteint la profondeur max */
+  protected get isPriceStale(): boolean {
+    const dateStr = this.priceService.getPriceDate(this.ingredient().item_id);
+    if (!dateStr) return false;
+    return Date.now() - new Date(dateStr).getTime() > 24 * 60 * 60 * 1000;
+  }
+
   protected get canToggle(): boolean {
     return this.ingredient().hasRecipe && this.currentDepth() < this.maxDepth();
   }

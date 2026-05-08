@@ -244,6 +244,57 @@
             <app-ingredient-row [ingredient]="ing" />
           }
         </div>
+
+        @if (recipeScanGroups().length > 0) {
+          <details class="scan-section">
+            <summary class="scan-header">
+              <span class="scan-header__title">Prix à scanner</span>
+              @let missingCount = recipeScanGroups().reduce((n, g) => n + g.missing.length, 0);
+              @let staleCount   = recipeScanGroups().reduce((n, g) => n + g.stale.length,   0);
+              @if (missingCount > 0) {
+                <span class="scan-badge scan-badge--error">{{ missingCount }} manquant{{ missingCount > 1 ? 's' : '' }}</span>
+              }
+              @if (staleCount > 0) {
+                <span class="scan-badge scan-badge--warn">{{ staleCount }} ancien{{ staleCount > 1 ? 's' : '' }}</span>
+              }
+            </summary>
+            <div class="scan-groups">
+              @for (group of recipeScanGroups(); track group.type_name) {
+                <div class="scan-group">
+                  <p class="scan-group__type">{{ group.type_name }}</p>
+                  @if (group.missing.length > 0) {
+                    <p class="scan-status scan-status--error">
+                      <span class="scan-dot scan-dot--error" aria-hidden="true"></span>
+                      {{ group.missing.length }} manquant{{ group.missing.length > 1 ? 's' : '' }}
+                    </p>
+                    <ul class="scan-list">
+                      @for (entry of group.missing; track entry.item_id) {
+                        <li>
+                          <span class="scan-name">{{ entry.item_name['fr'] }}</span>
+                          <span class="scan-level">{{ entry.item_level }}</span>
+                        </li>
+                      }
+                    </ul>
+                  }
+                  @if (group.stale.length > 0) {
+                    <p class="scan-status scan-status--warn">
+                      <span class="scan-dot scan-dot--warn" aria-hidden="true"></span>
+                      {{ group.stale.length }} ancien{{ group.stale.length > 1 ? 's' : '' }}
+                    </p>
+                    <ul class="scan-list">
+                      @for (entry of group.stale; track entry.item_id) {
+                        <li>
+                          <span class="scan-name">{{ entry.item_name['fr'] }}</span>
+                          <span class="scan-level">{{ entry.item_level }}</span>
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+              }
+            </div>
+          </details>
+        }
       }
     }
 

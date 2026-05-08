@@ -154,38 +154,54 @@ export class ItemService {
     this.selectedRecipe.set(recipe);
 
     if (recipe) {
-      const ids = [item.id, ...recipe.ingredients.map(i => i.item_id)];
-      await this.priceService.loadPricesForItems(ids);
+      await this.priceService.loadPricesForItems([item.id, ...recipe.ingredients.map(i => i.item_id)]);
+      await this.loadAllSubRecipes(recipe.ingredients);
     }
   }
 
   async selectRecipe(recipe: Recipe): Promise<void> {
     this.selectedRecipe.set(recipe);
-    const ids = [this.selectedItem()!.id, ...recipe.ingredients.map(i => i.item_id)];
-    await this.priceService.loadPricesForItems(ids);
+    await this.priceService.loadPricesForItems([this.selectedItem()!.id, ...recipe.ingredients.map(i => i.item_id)]);
+    await this.loadAllSubRecipes(recipe.ingredients);
   }
 
   async toggleCraftMode(itemId: number): Promise<void> {
-    const current = this.craftModeIngredients();
-    const next = new Set(current);
+    const next = new Set(this.craftModeIngredients());
+    if (next.has(itemId)) next.delete(itemId); else next.add(itemId);
+    this.craftModeIngredients.set(next);
+  }
 
-    if (next.has(itemId)) {
-      next.delete(itemId);
-      this.craftModeIngredients.set(next);
-    } else {
-      next.add(itemId);
-      this.craftModeIngredients.set(next);
+  private async loadAllSubRecipes(rootIngredients: Recipe['ingredients']): Promise<void> {
+    const visited = new Set<number>();
+    const pending = new Set(rootIngredients.filter(i => i.hasRecipe).map(i => i.item_id));
 
-      if (!(itemId in this.availableSubRecipes())) {
-        const recipes = await window.electronAPI.getRecipesByItemId(itemId);
-        this.availableSubRecipes.update(r => ({ ...r, [itemId]: recipes }));
-        this.subRecipes.update(r => ({ ...r, [itemId]: recipes[0] ?? null }));
+    while (pending.size > 0) {
+      const batch = [...pending].filter(id => !visited.has(id));
+      if (batch.length === 0) break;
+      batch.forEach(id => { visited.add(id); pending.delete(id); });
 
-        const first = recipes[0];
-        if (first) {
-          await this.priceService.loadPricesForItems(first.ingredients.map(i => i.item_id));
+      const results = await Promise.all(
+        batch.map(id => window.electronAPI.getRecipesByItemId(id).then(recipes => ({ id, recipes })))
+      );
+
+      const newAvailable: Partial<Record<number, Recipe[]>>      = {};
+      const newSubRecipes: Partial<Record<number, Recipe | null>> = {};
+      const newPriceIds: number[] = [];
+
+      for (const { id, recipes } of results) {
+        newAvailable[id]  = recipes;
+        newSubRecipes[id] = recipes[0] ?? null;
+        for (const r of recipes) {
+          for (const ing of r.ingredients) {
+            newPriceIds.push(ing.item_id);
+            if (ing.hasRecipe && !visited.has(ing.item_id)) pending.add(ing.item_id);
+          }
         }
       }
+
+      this.availableSubRecipes.update(r => ({ ...r, ...newAvailable }));
+      this.subRecipes.update(r => ({ ...r, ...newSubRecipes }));
+      if (newPriceIds.length > 0) await this.priceService.loadPricesForItems(newPriceIds);
     }
   }
 

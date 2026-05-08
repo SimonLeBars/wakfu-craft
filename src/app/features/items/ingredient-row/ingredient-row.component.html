@@ -85,7 +85,9 @@
           [attr.aria-label]="'Prix marché de ' + ingredient().item_name['fr']"
         />
         @if (priceService.getPriceDate(ingredient().item_id); as date) {
-          <span class="price-date" [title]="date | date:'dd/MM/yyyy HH:mm'">
+          <span class="price-date"
+                [class.price-date--stale]="isPriceStale"
+                [title]="date | date:'dd/MM/yyyy HH:mm'">
             {{ date | date:'dd/MM' }}
           </span>
         }
