@@ -368,16 +368,6 @@ h3 {
 
 details[open] > .scan-header::before { transform: rotate(90deg); }
 
-.scan-badge {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 1px 7px;
-  border-radius: var(--radius-pill);
-
-  &--error { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
-  &--warn  { background: rgba(249, 115, 22, 0.15); color: #f97316; }
-}
-
 .scan-groups {
   padding: 10px 14px 12px;
   display: flex;
@@ -399,82 +389,10 @@ details[open] > .scan-header::before { transform: rotate(90deg); }
   }
 }
 
-.scan-status {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin: 4px 0 2px;
-
-  &:first-of-type { margin-top: 0; }
-  &--error { color: #ef4444; }
-  &--warn  { color: #f97316; }
-}
-
-.scan-dot {
-  flex-shrink: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-
-  &--error { background: #ef4444; }
-  &--warn  { background: #f97316; }
-}
-
-.scan-list {
-  list-style: none;
-  margin: 0 0 4px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-
-  &:last-child { margin-bottom: 0; }
-
-  li {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    font-size: 0.8rem;
-  }
-}
-
-.scan-name {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.scan-level {
-  font-size: 0.72rem;
-  color: var(--text-dim);
-  white-space: nowrap;
-}
-
 // ── Prix de vente (item crafté) ─────────────────────────────────────────────
 
-.price-section {
-  @include card;
-  padding: 16px;
-  margin-bottom: 24px;
-}
-
-.price-input-row { @include flex-between; gap: 16px; }
-
-.price-label { font-weight: 500; flex: 1; }
-
-.price-input-group { @include price-input-group; margin-left: auto; }
-.current-price     { @include current-price; min-width: 70px; }
-.price-input       { @include price-field; }
-.price-date        { @include price-date; }
-.btn-save          { @include btn-save; }
-.btn-not-for-sale  { @include btn-not-for-sale; }
-.badge-not-for-sale { @include badge-not-for-sale; }
+.price-input-group { margin-left: auto; }
+.current-price     { min-width: 70px; }
 
 .btn-add-session {
   margin-left: auto;
@@ -497,8 +415,6 @@ details[open] > .scan-header::before { transform: rotate(90deg); }
   gap: 6px;
   margin-bottom: 12px;
 }
-
-.recipe-tab { @include recipe-tab(5px 12px, 0.8rem); }
 
 .recipe-level-warn {
   @include level-warn;

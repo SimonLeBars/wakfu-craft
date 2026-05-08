@@ -145,13 +145,8 @@
 
 // ── Saisie du prix marché ────────────────────────────────────────────────────
 
-.price-input-group  { @include price-input-group; flex-shrink: 0; }
-.current-price      { @include current-price; min-width: 60px; }
-.price-input        { @include price-field; &--small { width: 80px; } }
-.price-date         { @include price-date; &--stale { color: #f97316; } }
-.btn-save           { @include btn-save; }
-.btn-not-for-sale   { @include btn-not-for-sale; }
-.badge-not-for-sale { @include badge-not-for-sale; }
+.price-input-group { flex-shrink: 0; }
+.current-price     { min-width: 60px; }
 
 // ── Warning niveau métier insuffisant ───────────────────────────────────────
 
@@ -182,7 +177,7 @@
   margin-left: 8px;
 }
 
-.recipe-tab { @include recipe-tab(3px 8px, 0.75rem); }
+.recipe-tab { padding: 3px 8px; font-size: 0.75rem; }
 
 .recipe-tab__warn {
   font-size: 0.7em;

@@ -263,29 +263,29 @@
                 <div class="scan-group">
                   <p class="scan-group__type">{{ group.type_name }}</p>
                   @if (group.missing.length > 0) {
-                    <p class="scan-status scan-status--error">
+                    <p class="scan-list-label scan-list-label--error">
                       <span class="scan-dot scan-dot--error" aria-hidden="true"></span>
                       {{ group.missing.length }} manquant{{ group.missing.length > 1 ? 's' : '' }}
                     </p>
                     <ul class="scan-list">
                       @for (entry of group.missing; track entry.item_id) {
                         <li>
-                          <span class="scan-name">{{ entry.item_name['fr'] }}</span>
-                          <span class="scan-level">{{ entry.item_level }}</span>
+                          <span class="scan-item-name">{{ entry.item_name['fr'] }}</span>
+                          <span class="scan-item-level">{{ entry.item_level }}</span>
                         </li>
                       }
                     </ul>
                   }
                   @if (group.stale.length > 0) {
-                    <p class="scan-status scan-status--warn">
+                    <p class="scan-list-label scan-list-label--warn">
                       <span class="scan-dot scan-dot--warn" aria-hidden="true"></span>
                       {{ group.stale.length }} ancien{{ group.stale.length > 1 ? 's' : '' }}
                     </p>
                     <ul class="scan-list">
                       @for (entry of group.stale; track entry.item_id) {
                         <li>
-                          <span class="scan-name">{{ entry.item_name['fr'] }}</span>
-                          <span class="scan-level">{{ entry.item_level }}</span>
+                          <span class="scan-item-name">{{ entry.item_name['fr'] }}</span>
+                          <span class="scan-item-level">{{ entry.item_level }}</span>
                         </li>
                       }
                     </ul>
