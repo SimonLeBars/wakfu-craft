@@ -48,6 +48,24 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 - Use the async pipe to handle observables
 - Do not assume globals like (`new Date()`) are available.
 
+## SCSS Mixins
+
+- Before writing a new SCSS block, check `src/styles/_mixins.scss` for an existing mixin that fits.
+- Use `@include input-base($bg)` for all text/number/select inputs; pass `var(--bg-surface)` when the field sits on a surface background.
+- Use `@include recipe-tab($padding, $font-size)` for any pill-style recipe/tab button.
+- Use `@include level-warn` for any orange "level too low" warning box, then add only the layout overrides (margin, padding, font-size) outside the mixin.
+- When the same CSS pattern appears in two or more components, extract it as a parameterized mixin in `_mixins.scss` rather than duplicating it.
+
+## Database Migrations
+
+- Migration files live in `electron/database/migrations/` and are named `vN.sql`.
+- **Do not create a new `vN+1.sql` for uncommitted changes.** As long as the current migration file is not yet committed, edit it in place.
+- When updating an uncommitted migration file, also fix the live database manually so it stays in sync:
+  1. Revert the changes the previous version of the script applied (e.g. `ALTER TABLE … DROP COLUMN`).
+  2. Decrement the `schema_version` in the `settings` table back to `N-1`.
+  3. Restart the app so the updated `vN.sql` runs cleanly from scratch.
+- Only bump to a new `vN+1.sql` once `vN.sql` is part of a commit.
+
 ## Services
 
 - Design services around a single responsibility

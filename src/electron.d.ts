@@ -12,6 +12,7 @@ export interface Recipe {
   id:              number;
   level:           number;
   category_id:     number;
+  category_name:   Record<string, string>;
   xp_ratio:        number;
   result_quantity: number;
   ingredients:     RecipeIngredient[];
@@ -29,17 +30,27 @@ export interface RecipeCategory {
   is_innate: boolean;
 }
 
+export interface XpIngredient {
+  item_id:    number;
+  quantity:   number;
+  item_name:  Record<string, string>;
+  item_level: number;
+  item_type:  number;
+}
+
 export interface XpRecipe {
   recipe_id:       number;
   recipe_level:    number;
   xp_ratio:        number;
   result_quantity: number;
   category_id:     number;
+  category_name:   Record<string, string>;
   item_id:         number;
   item_name:       Record<string, string>;
   item_level:      number;
+  item_type:       number;
   rarity:          number;
-  ingredients:     { item_id: number; quantity: number }[];
+  ingredients:     XpIngredient[];
 }
 
 export interface WakfuItem {
@@ -52,6 +63,7 @@ export interface WakfuItem {
 }
 
 export interface PriceEntry {
+  id:           number;
   price:        number;
   recorded_at:  string;
   not_for_sale: boolean;
@@ -66,6 +78,7 @@ export interface SessionItem {
   item_level:      number;
   rarity:          number;
   parent_item_id:  number | null;
+  recipe_id:       number | null;
 }
 
 export interface ShoppingItem {
@@ -83,11 +96,21 @@ export interface CraftSession {
   item_count:  number;
 }
 
-export interface CaptureRegion {
+export interface GridConfig {
   x: number;
   y: number;
-  width: number;
-  height: number;
+  colWidths: number[];
+  rowHeights: number[];
+}
+
+export interface GridRow {
+  name: string;
+  level: number | null;
+  quantity: number | null;
+  price: number | null;
+  debugImages: [string, string, string, string];
+  rawTexts:    [string, string, string, string];
+  stageImages?: { label: string; src: string }[][];
 }
 
 export interface ElectronAPI {
@@ -111,18 +134,19 @@ export interface ElectronAPI {
   getRecipeCategories:  () => Promise<RecipeCategory[]>;
   getProfessionLevels:  () => Promise<Record<number, number>>;
   setProfessionLevels:  (levels: Record<number, number>) => Promise<void>;
-  getRecipesByCategory: (categoryId: number) => Promise<XpRecipe[]>;
+  getRecipesByCategoryAndLevel: (categoryId: number, minLevel: number, maxLevel: number) => Promise<XpRecipe[]>;
   getRecipesByItemIds:  (itemIds: number[])  => Promise<XpRecipe[]>;
   searchItems:       (query: string, lang?: string, typeIds?: number[], minLevel?: number, maxLevel?: number, rarities?: number[]) => Promise<WakfuItem[]>;
-  getRecipeByItemId: (itemId: number) => Promise<Recipe | null>;
+  getRecipesByItemId: (itemId: number) => Promise<Recipe[]>;
   setPrice:        (itemId: number, price: number) => Promise<boolean>;
   setNotForSale:   (itemId: number)               => Promise<boolean>;
   getLatestPrices:       (itemIds: number[]) => Promise<Record<number, number>>;
   getLatestPriceEntries: (itemIds: number[]) => Promise<Record<number, PriceEntry>>;
-  getPriceHistory: (itemId: number) => Promise<PriceEntry[]>;
+  getPriceHistory:    (itemId: number) => Promise<PriceEntry[]>;
+  deletePriceEntry:   (id: number)     => Promise<void>;
   ocr: {
-    startSelection: ()                      => Promise<CaptureRegion | null>;
-    capture:        (region: CaptureRegion) => Promise<{ price: number | null; debugImage: string; rawText: string } | null>;
+    openGridOverlay: (config?: GridConfig) => Promise<GridConfig | null>;
+    captureGrid:     (grid: GridConfig)    => Promise<GridRow[] | null>;
   };
   sessions: {
     getAll:          ()                                                                                     => Promise<CraftSession[]>;
@@ -130,7 +154,7 @@ export interface ElectronAPI {
     rename:          (id: number, name: string)                                                             => Promise<void>;
     delete:          (id: number)                                                                           => Promise<void>;
     getItems:        (id: number)                                                                           => Promise<SessionItem[]>;
-    addItem:         (sessionId: number, itemId: number, qty: number, parentId: number | null) => Promise<number>;
+    addItem:         (sessionId: number, itemId: number, qty: number, parentId: number | null, recipeId: number | null) => Promise<number>;
     removeItem:      (sessionItemId: number)                                                                => Promise<void>;
     updateQty:       (sessionItemId: number, qty: number)                                                  => Promise<void>;
     getShoppingList: (sessionId: number)                                                                    => Promise<ShoppingItem[]>;

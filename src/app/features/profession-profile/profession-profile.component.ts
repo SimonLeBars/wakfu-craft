@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ProfessionProfileService } from '../../core/services/profession-profile.service';
+import { ProfessionProfileService } from '@services/profession-profile.service';
 
 @Component({
   selector: 'app-profession-profile',

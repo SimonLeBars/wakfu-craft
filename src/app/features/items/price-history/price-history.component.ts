@@ -1,5 +1,5 @@
 import { Component, inject, signal, input, effect, ChangeDetectionStrategy } from '@angular/core';
-import { PriceService } from '../../../core/services/price.service';
+import { PriceService } from '@services/price.service';
 import { PriceChartComponent } from '../price-chart/price-chart.component';
 import { PriceEntry, WakfuItem } from '@electron';
 
@@ -11,6 +11,7 @@ import { PriceEntry, WakfuItem } from '@electron';
       <app-price-chart
         [history]="history()"
         [itemName]="item()!.name['fr']"
+        (deleteEntry)="onDeleteEntry($event)"
       />
     }
   `,
@@ -25,6 +26,7 @@ export class PriceHistoryComponent {
   constructor() {
     effect(async () => {
       const currentItem = this.item();
+      this.priceService.priceHistoryVersion(); // recharge à chaque nouvelle entrée de prix
       if (currentItem) {
         const data = await this.priceService.getHistory(currentItem.id);
         this.history.set(data);
@@ -32,5 +34,10 @@ export class PriceHistoryComponent {
         this.history.set([]);
       }
     });
+  }
+
+  async onDeleteEntry(id: number): Promise<void> {
+    await this.priceService.deletePriceEntry(id);
+    this.history.update(entries => entries.filter(e => e.id !== id));
   }
 }

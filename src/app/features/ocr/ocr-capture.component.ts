@@ -1,212 +1,179 @@
-import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { CaptureRegion } from '@electron';
+import { GridRow, WakfuItem } from '@electron';
+import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
+import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
+import { OcrStateService, EditableRow } from './ocr-state.service';
+import { PriceService } from '@services/price.service';
+import { itemDisplayName, matchRow, loadGrid, saveGrid, loadDefaultRarity, saveDefaultRarity } from './ocr-capture.utils';
 
-interface CaptureResult {
-  price: number | null;
-  debugImage: string;
-  rawText: string;
-}
+const COL_LABELS = ['Nom', 'Lvl', 'Qté', 'Prix'] as const;
 
-const STORAGE_KEY = 'ocr_region';
+const RARITY_OPTIONS = [
+  { value: 0, label: 'Commun' },
+  { value: 2, label: 'Rare' },
+  { value: 3, label: 'Mythique' },
+  { value: 4, label: 'Légendaire' },
+  { value: 5, label: 'Relique' },
+  { value: 6, label: 'Souvenir' },
+  { value: 7, label: 'Épique' },
+] as const;
 
 @Component({
   selector: 'app-ocr-capture',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DecimalPipe],
-  template: `
-    <div class="ocr-page">
-      <h2 class="ocr-title">Capture de prix par OCR</h2>
-      <p class="ocr-desc">
-        Configurez la zone de l'écran où le prix s'affiche dans l'HDV, puis
-        cliquez sur <strong>Scanner</strong> pour extraire le prix automatiquement.
-      </p>
-
-      <!-- Zone configurée -->
-      <section class="ocr-card">
-        <h3>Zone de capture</h3>
-        @if (savedRegion()) {
-          <p class="region-info">
-            {{ savedRegion()!.width }} × {{ savedRegion()!.height }} px
-            &nbsp;—&nbsp; position ({{ savedRegion()!.x }}, {{ savedRegion()!.y }})
-          </p>
-        } @else {
-          <p class="region-empty">Aucune zone configurée</p>
-        }
-        <button class="btn-primary" (click)="startSelection()">
-          📐 Configurer la zone
-        </button>
-      </section>
-
-      <!-- Capture -->
-      <section class="ocr-card">
-        <h3>Lecture du prix</h3>
-        <button
-          class="btn-scan"
-          (click)="capture()"
-          [disabled]="!savedRegion() || capturing()"
-          [attr.aria-busy]="capturing()"
-        >
-          @if (capturing()) { ⏳ Analyse… } @else { 🔍 Scanner le prix }
-        </button>
-
-        @if (status()) {
-          <p class="ocr-status" role="status" aria-live="polite">{{ status() }}</p>
-        }
-
-        @if (lastResult()) {
-          <div class="ocr-result">
-            @if (lastResult()!.price !== null) {
-              Prix détecté : <strong>{{ lastResult()!.price! | number:'1.0-0' }} k</strong>
-            } @else {
-              <span class="ocr-miss">Aucun prix reconnu</span>
-            }
-          </div>
-          <div class="ocr-debug">
-            <p class="debug-label">Texte brut OCR : <code>{{ lastResult()!.rawText || '(vide)' }}</code></p>
-            <p class="debug-label">Image traitée :</p>
-            <img class="debug-img" [src]="lastResult()!.debugImage" alt="Zone capturée" />
-          </div>
-        }
-      </section>
-    </div>
-  `,
-  styles: [`
-    .ocr-page {
-      padding: 32px;
-      max-width: 560px;
-      color: #e2e2f0;
-      font-family: sans-serif;
-    }
-    .ocr-title { margin: 0 0 8px; font-size: 1.5rem; }
-    .ocr-desc  { color: #888; font-size: 0.9rem; margin-bottom: 28px; line-height: 1.5; }
-
-    .ocr-card {
-      background: #1a1a2e;
-      border: 1px solid #2a2a3e;
-      border-radius: 10px;
-      padding: 20px;
-      margin-bottom: 20px;
-
-      h3 {
-        margin: 0 0 14px;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: #a0a0d0;
-      }
-    }
-
-    .region-info  { font-family: monospace; font-size: 0.9rem; color: #4ade80; margin-bottom: 14px; }
-    .region-empty { color: #666; font-style: italic; margin-bottom: 14px; }
-
-    .btn-primary {
-      padding: 8px 16px;
-      border-radius: 7px;
-      border: 1px solid #3a3a5e;
-      background: transparent;
-      color: #e2e2f0;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: border-color 0.15s;
-      &:hover { border-color: #5865f2; }
-    }
-
-    .btn-scan {
-      padding: 10px 20px;
-      border-radius: 7px;
-      border: 1px solid #5865f2;
-      background: transparent;
-      color: #5865f2;
-      cursor: pointer;
-      font-size: 0.95rem;
-      font-weight: 500;
-      transition: all 0.15s;
-      &:hover:not(:disabled) { background: #5865f2; color: white; }
-      &:disabled { opacity: 0.45; cursor: not-allowed; }
-    }
-
-    .ocr-status { margin-top: 14px; font-size: 0.85rem; color: #888; }
-
-    .ocr-result {
-      margin-top: 16px;
-      padding: 14px 18px;
-      background: #0f0f1a;
-      border-radius: 8px;
-      border: 1px solid #2a2a3e;
-      font-size: 1.05rem;
-      color: #a0a0d0;
-      strong { color: #4ade80; font-size: 1.3rem; }
-    }
-    .ocr-miss { color: #ef4444; font-style: italic; }
-
-    .ocr-debug {
-      margin-top: 14px;
-      padding: 14px;
-      background: #0f0f1a;
-      border-radius: 8px;
-      border: 1px solid #2a2a3e;
-    }
-    .debug-label {
-      font-size: 0.8rem;
-      color: #666;
-      margin-bottom: 8px;
-      code { color: #a0a0d0; background: #1a1a2e; padding: 2px 6px; border-radius: 4px; }
-    }
-    .debug-img {
-      display: block;
-      max-width: 100%;
-      border: 1px solid #3a3a5e;
-      border-radius: 4px;
-      image-rendering: pixelated;
-    }
-  `],
+  imports: [DecimalPipe, RarityColorPipe, RarityLabelPipe],
+  templateUrl: './ocr-capture.component.html',
+  styleUrl: './ocr-capture.component.scss',
 })
 export class OcrCaptureComponent {
-  protected readonly savedRegion = signal<CaptureRegion | null>(this.loadRegion());
-  protected readonly capturing   = signal(false);
-  protected readonly lastResult  = signal<CaptureResult | null>(null);
-  protected readonly status      = signal('');
+  private readonly state        = inject(OcrStateService);
+  private readonly priceService = inject(PriceService);
 
-  async startSelection(): Promise<void> {
-    this.status.set('Sélectionnez la zone dans l\'overlay…');
-    const region = await window.electronAPI.ocr.startSelection();
-    if (region) {
-      this.savedRegion.set(region);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(region));
-      this.status.set('Zone enregistrée.');
-    } else {
-      this.status.set('Sélection annulée.');
-    }
-  }
+  protected readonly colLabels      = COL_LABELS;
+  protected readonly itemDisplayName = itemDisplayName;
 
-  async capture(): Promise<void> {
-    const region = this.savedRegion();
-    if (!region) return;
+  protected readonly rarityOptions  = RARITY_OPTIONS;
+  protected readonly savedGrid      = signal(loadGrid());
+  protected readonly defaultRarity  = signal<number | null>(loadDefaultRarity());
+  protected readonly scanning       = signal(false);
 
-    this.capturing.set(true);
-    this.lastResult.set(null);
-    this.status.set('Capture en cours…');
+  protected readonly tableRows  = this.state.tableRows;
+  protected readonly editRows   = this.state.editRows;
+  protected readonly savedCount = this.state.savedCount;
+  protected readonly status     = this.state.status;
+
+  protected readonly activeSuggRow = signal<number | null>(null);
+  protected readonly suggestions   = signal<WakfuItem[]>([]);
+  protected readonly saving        = signal(false);
+
+  protected readonly firstRowStages = computed(() => this.tableRows()?.[0]?.stageImages ?? null);
+
+  protected readonly saveableCount = computed(() =>
+    this.editRows().filter(r => r.itemId !== null && r.price !== null).length
+  );
+
+  protected readonly gridSize = computed(() => {
+    const g = this.savedGrid();
+    if (!g) return '';
+    const w = g.colWidths.reduce((a, b) => a + b, 0);
+    const h = g.rowHeights.reduce((a, b) => a + b, 0);
+    return `${w} × ${h} px`;
+  });
+
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  async scanTable(): Promise<void> {
+    const grid = this.savedGrid();
+    if (!grid) return;
+
+    this.scanning.set(true);
+    this.tableRows.set(null);
+    this.editRows.set([]);
+    this.savedCount.set(0);
+    this.status.set('Analyse du tableau en cours…');
 
     try {
-      const result = await window.electronAPI.ocr.capture(region);
-      if (result) {
-        this.lastResult.set(result);
+      const rows = await window.electronAPI.ocr.captureGrid(grid);
+      if (rows) {
+        this.tableRows.set(rows);
+        this.editRows.set(await this.autoMatchRows(rows));
         this.status.set('');
       } else {
         this.status.set('Erreur lors de la capture.');
       }
     } finally {
-      this.capturing.set(false);
+      this.scanning.set(false);
     }
   }
 
-  private loadRegion(): CaptureRegion | null {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as CaptureRegion) : null;
-    } catch {
-      return null;
+  protected onNameInput(rowIndex: number, value: string): void {
+    this.editRows.update(rows => rows.map((r, i) =>
+      i === rowIndex ? { ...r, nameInput: value, itemId: null, rarity: null } : r
+    ));
+
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+
+    if (value.trim().length < 2) {
+      this.activeSuggRow.set(null);
+      this.suggestions.set([]);
+      return;
     }
+
+    this.searchTimer = setTimeout(async () => {
+      this.activeSuggRow.set(rowIndex);
+      const results = await window.electronAPI.searchItems(value.trim(), 'fr');
+      if (this.activeSuggRow() === rowIndex) {
+        this.suggestions.set(results.slice(0, 8));
+      }
+    }, 250);
+  }
+
+  protected selectSuggestion(rowIndex: number, item: WakfuItem): void {
+    const name = itemDisplayName(item);
+    this.editRows.update(rows => rows.map((r, i) =>
+      i === rowIndex
+        ? { ...r, itemId: item.id, rarity: item.rarity, nameInput: `${name} (Niv. ${item.level})` }
+        : r
+    ));
+    this.activeSuggRow.set(null);
+    this.suggestions.set([]);
+  }
+
+  protected closeSuggestions(): void {
+    setTimeout(() => {
+      this.activeSuggRow.set(null);
+      this.suggestions.set([]);
+    }, 150);
+  }
+
+  protected onPriceInput(rowIndex: number, value: string): void {
+    const n = parseInt(value, 10);
+    this.editRows.update(rows => rows.map((r, i) =>
+      i === rowIndex ? { ...r, price: isNaN(n) ? null : n } : r
+    ));
+  }
+
+  async saveAllPrices(): Promise<void> {
+    this.saving.set(true);
+    try {
+      const rows = this.editRows().filter(r => r.itemId !== null && r.price !== null);
+      await Promise.all(rows.map(r => this.priceService.setPrice(r.itemId!, r.price!)));
+      this.savedCount.set(rows.length);
+    } catch {
+      this.status.set('Erreur lors de l\'enregistrement des prix.');
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  async openGridOverlay(): Promise<void> {
+    this.status.set('Configurez la grille dans l\'overlay…');
+    const grid = await window.electronAPI.ocr.openGridOverlay(this.savedGrid() ?? undefined);
+    if (grid) {
+      this.savedGrid.set(grid);
+      saveGrid(grid);
+      this.status.set('Grille enregistrée.');
+    } else {
+      this.status.set('Configuration annulée.');
+    }
+  }
+
+  protected setDefaultRarity(value: string): void {
+    const n = value === '' ? null : parseInt(value, 10);
+    const rarity = n !== null && !isNaN(n) ? n : null;
+    this.defaultRarity.set(rarity);
+    saveDefaultRarity(rarity);
+  }
+
+  private async autoMatchRows(rows: GridRow[]): Promise<EditableRow[]> {
+    const rarity = this.defaultRarity();
+    return Promise.all(rows.map(async (r) => {
+      if (r.name.trim().length < 2) {
+        return { itemId: null, rarity: null, nameInput: r.name, price: r.price };
+      }
+      const results = await window.electronAPI.searchItems(r.name.trim(), 'fr');
+      return matchRow(r, results, rarity);
+    }));
   }
 }

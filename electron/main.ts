@@ -145,7 +145,7 @@ function registerIpcHandlers(db: DatabaseService): void {
   ipcMain.handle('xp:getCategories', () => db.getRecipeCategories());
   ipcMain.handle('profession:getLevels', () => db.getProfessionLevels());
   ipcMain.handle('profession:setLevels', (_e, levels: Record<number, number>) => db.setProfessionLevels(levels));
-  ipcMain.handle('xp:getRecipesByCategory', (_e, categoryId: number) => db.getRecipesByCategory(categoryId));
+  ipcMain.handle('xp:getRecipesByCategoryAndLevel', (_e, categoryId: number, minLevel: number, maxLevel:number) => db.getRecipesByCategoryAndLevel(categoryId, minLevel, maxLevel));
   ipcMain.handle('xp:getRecipesByItemIds',  (_e, itemIds: number[])  => db.getRecipesByItemIds(itemIds));
 
   // Recherche d'items par nom
@@ -153,10 +153,7 @@ function registerIpcHandlers(db: DatabaseService): void {
     return db.searchItems(query, lang, typeIds, minLevel, maxLevel, rarities);
   });
 
-  // Récupère la recette complète d'un item
-  ipcMain.handle('recipes:getByItemId', (_event, itemId: number) => {
-    return db.getRecipeByItemId(itemId);
-  });
+  ipcMain.handle('recipes:getAllByItemId', (_event, itemId: number) => db.getRecipesByItemId(itemId));
 
   ipcMain.handle('prices:setPrice', (_event, itemId: number, price: number) => {
     db.setPrice(itemId, price);
@@ -180,13 +177,17 @@ function registerIpcHandlers(db: DatabaseService): void {
     return db.getPriceHistory(itemId);
   });
 
+  ipcMain.handle('prices:deleteEntry', (_event, id: number) => {
+    db.deletePriceEntry(id);
+  });
+
   ipcMain.handle('sessions:getAll', () => db.getSessions());
   ipcMain.handle('sessions:create', (_e, name: string) => db.createSession(name));
   ipcMain.handle('sessions:rename', (_e, id: number, name: string) => db.renameSession(id, name));
   ipcMain.handle('sessions:delete', (_e, id: number) => db.deleteSession(id));
   ipcMain.handle('sessions:getItems', (_e, id: number) => db.getSessionItems(id));
-  ipcMain.handle('sessions:addItem', (_e, sessionId: number, itemId: number, qty: number, parentId: number | null) =>
-    db.addItemToSession(sessionId, itemId, qty, parentId));
+  ipcMain.handle('sessions:addItem', (_e, sessionId: number, itemId: number, qty: number, parentId: number | null, recipeId: number | null) =>
+    db.addItemToSession(sessionId, itemId, qty, parentId, recipeId));
   ipcMain.handle('sessions:removeItem', (_e, sessionItemId: number) =>
     db.removeItemFromSession(sessionItemId));
   ipcMain.handle('sessions:updateQty', (_e, sessionItemId: number, qty: number) =>

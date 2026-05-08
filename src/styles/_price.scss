@@ -1,0 +1,19 @@
+@use 'styles/mixins' as *;
+
+// ── Sélecteur de recette ──────────────────────────────────────────────────────
+
+.recipe-tab { @include recipe-tab(5px 12px, 0.8rem); }
+
+// ── Prix marché – primitives partagées ────────────────────────────────────────
+
+.price-section      { @include card; padding: 16px; margin-bottom: 24px; }
+.price-input-row    { @include flex-between; gap: 16px; }
+.price-label        { font-weight: 500; flex: 1; }
+
+.price-input-group  { @include price-input-group; }
+.current-price      { @include current-price; }
+.price-input        { @include price-field; &--small { width: 80px; } }
+.price-date         { @include price-date; &--stale { color: #f97316; } }
+.btn-save           { @include btn-save; }
+.btn-not-for-sale   { @include btn-not-for-sale; }
+.badge-not-for-sale { @include badge-not-for-sale; }

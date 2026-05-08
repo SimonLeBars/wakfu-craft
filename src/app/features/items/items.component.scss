@@ -174,16 +174,11 @@
 }
 
 .level-input {
+  @include input-base(var(--bg-surface));
   width: 58px;
   padding: 4px 6px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-input);
-  background: var(--bg-surface);
-  color: var(--text);
   font-size: 0.85rem;
   text-align: center;
-
-  &:focus { outline: none; border-color: var(--accent); }
   &::-webkit-outer-spin-button,
   &::-webkit-inner-spin-button { -webkit-appearance: none; }
 }
@@ -332,28 +327,72 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 16px;
+}
+
+// ── Prix à scanner ──────────────────────────────────────────────────────────
+
+.scan-section {
   margin-bottom: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.scan-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  background: var(--bg-surface);
+
+  &::-webkit-details-marker { display: none; }
+  &::before {
+    content: '▶';
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    transition: transform var(--transition);
+  }
+  &:hover { background: var(--bg-hover, var(--bg-surface)); }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  &__title {
+    @include section-title;
+    flex: 1;
+    margin: 0;
+  }
+}
+
+details[open] > .scan-header::before { transform: rotate(90deg); }
+
+.scan-groups {
+  padding: 10px 14px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.scan-group {
+  @include card;
+  padding: 8px 10px;
+  min-width: 150px;
+  flex: 1 1 150px;
+
+  &__type {
+    margin: 0 0 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+  }
 }
 
 // ── Prix de vente (item crafté) ─────────────────────────────────────────────
 
-.price-section {
-  @include card;
-  padding: 16px;
-  margin-bottom: 24px;
-}
-
-.price-input-row { @include flex-between; gap: 16px; }
-
-.price-label { font-weight: 500; flex: 1; }
-
-.price-input-group { @include price-input-group; margin-left: auto; }
-.current-price     { @include current-price; min-width: 70px; }
-.price-input       { @include price-field; }
-.price-date        { @include price-date; }
-.btn-save          { @include btn-save; }
-.btn-not-for-sale  { @include btn-not-for-sale; }
-.badge-not-for-sale { @include badge-not-for-sale; }
+.price-input-group { margin-left: auto; }
+.current-price     { min-width: 70px; }
 
 .btn-add-session {
   margin-left: auto;
@@ -366,6 +405,27 @@ h3 {
   font-size: 0.85rem;
   transition: all var(--transition);
   &:hover { background: var(--accent); color: white; }
+}
+
+// ── Sélecteur de recette (multi-recettes) ────────────────────────────────────
+
+.recipe-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.recipe-level-warn {
+  @include level-warn;
+  margin: 0 0 12px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+
+.recipe-tab__warn {
+  font-size: 0.75em;
+  margin-left: 3px;
 }
 
 

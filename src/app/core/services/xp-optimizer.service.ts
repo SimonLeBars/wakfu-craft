@@ -2,155 +2,56 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { PriceEntry, XpRecipe } from '@electron';
 import { ProfessionProfileService } from './profession-profile.service';
 import { SessionService } from './session.service';
+import { ItemService } from './item.service';
+import {
+  SortMode, XpRow, SubCraftItem, BlockedCraft, ScanGroup,
+  buildXpRow, collectSubCrafts, collectBlockedCrafts, wouldCraft, resolveIngredientsCost, buildScanGroups,
+} from './xp-optimizer.utils';
 
-export type SortMode = 'xp-per-cost' | 'xp-times-profit';
-
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-
-export interface CostResult {
-  cost:    number | null;
-  missing: boolean;
-  stale:   boolean;
-}
-
-export interface XpRow extends XpRecipe {
-  gap:              number;
-  successRate:      number;
-  xpMultiplier:     number;
-  effectiveXp:      number;
-  ingredientCost:   number | null;
-  sellRevenue:      number | null;
-  profit:           number | null;
-  xpPerCost:        number | null;
-  xpTimesProfit:    number | null;
-  score:            number | null;
-  hasMissingPrices: boolean;
-  hasStalePrices:   boolean;
-}
-
-export interface SubCraftItem {
-  item_id:   number;
-  item_name: Record<string, string>;
-  rarity:    number;
-}
-
-// ── Fonctions pures ───────────────────────────────────────────────────────────
-
-function resolveItemCost(
-  itemId:     number,
-  qty:        number,
-  recipeMap:  Map<number, XpRecipe>,
-  prices:     Record<number, PriceEntry>,
-  profLevels: Record<number, number>,
-  now:        number,
-  visited:    Set<number>,
-): CostResult {
-  const entry      = prices[itemId];
-  const marketCost = entry && !entry.not_for_sale ? entry.price * qty : null;
-  const stale      = !!entry && !entry.not_for_sale && (now - new Date(entry.recorded_at).getTime() > ONE_DAY_MS);
-  const recipe     = recipeMap.get(itemId);
-
-  if (!recipe || visited.has(itemId)) {
-    return { cost: marketCost, missing: marketCost === null, stale };
-  }
-  if ((profLevels[recipe.category_id] ?? 0) < recipe.recipe_level) {
-    return { cost: marketCost, missing: marketCost === null, stale };
-  }
-
-  const nextVisited = new Set(visited).add(itemId);
-  let craftTotal = 0, craftMissing = false, craftStale  = false;
-
-  for (const ing of recipe.ingredients) {
-    const r = resolveItemCost(ing.item_id, ing.quantity, recipeMap, prices, profLevels, now, nextVisited);
-    if (r.missing) { craftMissing = true; break; }
-    craftTotal += r.cost!;
-    if (r.stale) craftStale = true;
-  }
-
-  if (craftMissing) return { cost: marketCost, missing: marketCost === null, stale };
-
-  const craftCostTotal = (craftTotal / recipe.result_quantity) * qty;
-  if (marketCost === null || craftCostTotal < marketCost) {
-    return { cost: craftCostTotal, missing: false, stale: craftStale };
-  }
-  return { cost: marketCost, missing: false, stale };
-}
-
-function resolveIngredientsCost(
-  ingredients: { item_id: number; quantity: number }[],
-  recipeMap:   Map<number, XpRecipe>,
-  prices:      Record<number, PriceEntry>,
-  profLevels:  Record<number, number>,
-  now:         number,
-): CostResult {
-  let total = 0, missing = false, stale = false;
-  for (const ing of ingredients) {
-    const r = resolveItemCost(ing.item_id, ing.quantity, recipeMap, prices, profLevels, now, new Set());
-    if (r.missing) missing = true; else total += r.cost!;
-    if (r.stale) stale = true;
-  }
-  return { cost: missing ? null : total, missing, stale };
-}
-
-function wouldCraft(
-  itemId:     number,
-  recipeMap:  Map<number, XpRecipe>,
-  prices:     Record<number, PriceEntry>,
-  profLevels: Record<number, number>,
-  now:        number,
-  visited:    Set<number>,
-): boolean {
-  const subRecipe = recipeMap.get(itemId);
-  if (!subRecipe || visited.has(itemId)) return false;
-  if ((profLevels[subRecipe.category_id] ?? 0) < subRecipe.recipe_level) return false;
-  const r           = resolveItemCost(itemId, 1, recipeMap, prices, profLevels, now, visited);
-  const marketEntry = prices[itemId];
-  return !marketEntry || marketEntry.not_for_sale || r.cost === null || r.cost < marketEntry.price;
-}
-
-function collectSubCrafts(
-  ingredients: { item_id: number; quantity: number }[],
-  recipeMap:   Map<number, XpRecipe>,
-  prices:      Record<number, PriceEntry>,
-  profLevels:  Record<number, number>,
-  now:         number,
-  visited:     Set<number>,
-): SubCraftItem[] {
-  const result: SubCraftItem[] = [];
-  for (const ing of ingredients) {
-    if (!wouldCraft(ing.item_id, recipeMap, prices, profLevels, now, visited)) continue;
-    const subRecipe  = recipeMap.get(ing.item_id)!;
-    const nextVisited = new Set(visited).add(ing.item_id);
-    result.push({ item_id: ing.item_id, item_name: subRecipe.item_name, rarity: subRecipe.rarity });
-    result.push(...collectSubCrafts(subRecipe.ingredients, recipeMap, prices, profLevels, now, nextVisited));
-  }
-  return result;
-}
-
-// ── Service ───────────────────────────────────────────────────────────────────
+export type { SortMode, XpRow, SubCraftItem, BlockedCraft, ScanGroup };
 
 @Injectable({ providedIn: 'root' })
 export class XpOptimizerService {
   private readonly profile        = inject(ProfessionProfileService);
   private readonly sessionService = inject(SessionService);
+  readonly itemService            = inject(ItemService);
 
-  readonly selectedCatId = signal<number | null>(null);
-  readonly playerLevel   = signal<number>(100);
-  readonly sortMode      = signal<SortMode>('xp-per-cost');
-  readonly recipes       = signal<XpRecipe[]>([]);
-  readonly subRecipeMap  = signal<Map<number, XpRecipe>>(new Map());
-  readonly prices        = signal<Record<number, PriceEntry>>({});
-  readonly isLoading     = signal(false);
+  readonly selectedCatId       = signal<number | null>(null);
+  readonly playerLevel         = signal<number>(100);
+  readonly sortMode            = signal<SortMode>('xp-per-cost');
+  readonly recipes             = signal<XpRecipe[]>([]);
+  readonly subRecipeMap        = signal<Map<number, XpRecipe>>(new Map());
+  readonly availableSubRecipes = signal<Map<number, XpRecipe[]>>(new Map());
+  readonly prices              = signal<Record<number, PriceEntry>>({});
+  readonly isLoading           = signal(false);
 
-  readonly dialogRow = signal<XpRow | null>(null);
-  readonly dialogQty = signal<number>(1);
+  readonly dialogRow            = signal<XpRow | null>(null);
+  readonly dialogQty            = signal<number>(1);
+  readonly dialogCheckedBlocked = signal<Set<number>>(new Set());
 
   readonly craftCategories = computed(() => this.profile.categories().filter(c => !c.is_innate));
+
+  readonly scanGroups = computed((): ScanGroup[] => {
+    const groups    = buildScanGroups(this.rows(), this.subRecipeMap(), this.availableSubRecipes(), this.prices(), Date.now());
+    const typeNames = new Map(this.itemService.itemTypes().map(t => [t.id, t.name['fr'] ?? '']));
+    return groups.sort((a, b) => {
+      const na = typeNames.get(a.type_id) ?? '';
+      const nb = typeNames.get(b.type_id) ?? '';
+      const c  = na.localeCompare(nb, 'fr');
+      return c !== 0 ? c : a.bracket_min - b.bracket_min;
+    });
+  });
 
   readonly dialogSubCrafts = computed((): SubCraftItem[] => {
     const row = this.dialogRow();
     if (!row) return [];
     return collectSubCrafts(row.ingredients, this.subRecipeMap(), this.prices(), this.profile.levels(), Date.now(), new Set());
+  });
+
+  readonly dialogBlockedCrafts = computed((): BlockedCraft[] => {
+    const row = this.dialogRow();
+    if (!row) return [];
+    return collectBlockedCrafts(row.ingredients, this.subRecipeMap(), this.prices(), this.profile.levels(), Date.now(), new Set());
   });
 
   readonly rows = computed((): XpRow[] => {
@@ -162,36 +63,7 @@ export class XpOptimizerService {
     const now         = Date.now();
 
     return this.recipes()
-      .map(r => {
-        const gap = r.recipe_level - playerLevel;
-
-        let successRate: number, xpMultiplier: number;
-        if (gap > 0) {
-          successRate  = Math.max(0.1, (10 - gap) / 10);
-          xpMultiplier = 1 + gap * 0.1;
-        } else {
-          successRate  = 1;
-          const below  = -gap;
-          xpMultiplier = below <= 10 ? 1 : below < 20 ? (20 - below) / 10 : 0;
-        }
-        const effectiveXp = r.xp_ratio * xpMultiplier * successRate;
-
-        const { cost: ingredientCost, missing: hasMissingPrices, stale: ingStale } =
-          resolveIngredientsCost(r.ingredients, recipeMap, prices, profLevels, now);
-
-        const resultEntry    = prices[r.item_id];
-        const resultStale    = !!resultEntry && !resultEntry.not_for_sale && (now - new Date(resultEntry.recorded_at).getTime() > ONE_DAY_MS);
-        const hasStalePrices = ingStale || resultStale;
-        const sellRevenue    = resultEntry && !resultEntry.not_for_sale ? resultEntry.price * r.result_quantity : null;
-        const profit         = ingredientCost !== null && sellRevenue !== null ? sellRevenue - ingredientCost : null;
-        const xpPerCost      = effectiveXp > 0 && ingredientCost !== null && ingredientCost > 0
-          ? effectiveXp / ingredientCost * 1000 : null;
-        const xpTimesProfit  = effectiveXp > 0 && profit !== null ? effectiveXp * profit : null;
-        const score          = sortMode === 'xp-per-cost' ? xpPerCost : xpTimesProfit;
-
-        return { ...r, gap, successRate, xpMultiplier, effectiveXp, ingredientCost, sellRevenue,
-                 profit, xpPerCost, xpTimesProfit, score, hasMissingPrices, hasStalePrices };
-      })
+      .map(r => buildXpRow(r, playerLevel, sortMode, recipeMap, prices, profLevels, now))
       .filter(r => r.effectiveXp > 0)
       .sort((a, b) => {
         if (a.score == null && b.score == null) return a.recipe_level - b.recipe_level;
@@ -205,30 +77,52 @@ export class XpOptimizerService {
     this.selectedCatId.set(id);
     this.recipes.set([]);
     this.subRecipeMap.set(new Map());
+    this.availableSubRecipes.set(new Map());
     this.prices.set({});
     if (!id) return;
 
+    if (this.itemService.itemTypes().length === 0) await this.itemService.loadItemTypes();
     this.playerLevel.set(this.profile.getLevel(id));
     this.isLoading.set(true);
     try {
-      const recipes = await window.electronAPI.getRecipesByCategory(id);
-      this.recipes.set(recipes);
-      const subMap  = await this.buildSubRecipeMap(recipes);
-      this.subRecipeMap.set(subMap);
-      await this.loadPrices(recipes, subMap);
+      await this.loadCategoryRecipes(id, this.playerLevel());
     } finally {
       this.isLoading.set(false);
     }
   }
 
+  private async loadCategoryRecipes(categoryId: number, playerLevel: number): Promise<void> {
+    const recipes = await window.electronAPI.getRecipesByCategoryAndLevel(
+      categoryId, playerLevel - 19, playerLevel + 9,
+    );
+    this.recipes.set(recipes);
+
+    const { selected, available } = await this.buildSubRecipeMap(recipes);
+    this.subRecipeMap.set(selected);
+    this.availableSubRecipes.set(available);
+
+    await this.loadPrices(recipes, selected, available);
+    this.selectCheapestSubRecipes();
+  }
+
   async refreshPrices(): Promise<void> {
     if (this.recipes().length === 0) return;
-    await this.loadPrices(this.recipes(), this.subRecipeMap());
+    await this.loadPrices(this.recipes(), this.subRecipeMap(), this.availableSubRecipes());
+    this.selectCheapestSubRecipes();
   }
 
   openDialog(row: XpRow): void {
     this.dialogQty.set(1);
     this.dialogRow.set(row);
+    this.dialogCheckedBlocked.set(new Set());
+  }
+
+  toggleBlockedCraft(itemId: number): void {
+    this.dialogCheckedBlocked.update(s => {
+      const next = new Set(s);
+      if (next.has(itemId)) next.delete(itemId); else next.add(itemId);
+      return next;
+    });
   }
 
   closeDialog(): void {
@@ -250,61 +144,100 @@ export class XpOptimizerService {
     const now        = Date.now();
 
     await this.addItemRecursive(row.item_id, this.dialogQty(), row.ingredients,
-                                recipeMap, prices, profLevels, now, new Set(), null);
+                                recipeMap, prices, profLevels, now, new Set(), null, row.recipe_id,
+                                this.dialogCheckedBlocked());
     await this.sessionService.refreshData();
     this.closeDialog();
   }
 
   private async addItemRecursive(
-    itemId:      number,
-    qty:         number,
-    ingredients: { item_id: number; quantity: number }[],
-    recipeMap:   Map<number, XpRecipe>,
-    prices:      Record<number, PriceEntry>,
-    profLevels:  Record<number, number>,
-    now:         number,
-    visited:     Set<number>,
-    parentId:    number | null,
+    itemId:        number,
+    qty:           number,
+    ingredients:   { item_id: number; quantity: number }[],
+    recipeMap:     Map<number, XpRecipe>,
+    prices:        Record<number, PriceEntry>,
+    profLevels:    Record<number, number>,
+    now:           number,
+    visited:       Set<number>,
+    parentId:      number | null,
+    recipeId:      number | null = null,
+    forceCraftIds: Set<number>   = new Set(),
   ): Promise<void> {
-    const sessionItemId = await this.sessionService.addItem(itemId, qty, parentId);
+    const sessionItemId = await this.sessionService.addItem(itemId, qty, parentId, recipeId);
 
     for (const ing of ingredients) {
-      if (!wouldCraft(ing.item_id, recipeMap, prices, profLevels, now, visited)) continue;
+      const craft = wouldCraft(ing.item_id, recipeMap, prices, profLevels, now, visited)
+                 || forceCraftIds.has(ing.item_id);
+      if (!craft) continue;
       const subRecipe   = recipeMap.get(ing.item_id)!;
       const nextVisited = new Set(visited).add(ing.item_id);
       await this.addItemRecursive(
         ing.item_id, ing.quantity * qty, subRecipe.ingredients,
-        recipeMap, prices, profLevels, now, nextVisited, sessionItemId,
+        recipeMap, prices, profLevels, now, nextVisited, sessionItemId, subRecipe.recipe_id,
+        forceCraftIds,
       );
     }
   }
 
-  private async buildSubRecipeMap(recipes: XpRecipe[]): Promise<Map<number, XpRecipe>> {
-    const map  = new Map<number, XpRecipe>();
-    const done = new Set<number>();
-    const pending = new Set(recipes.flatMap(r => r.ingredients.map(i => i.item_id)));
+  selectSubRecipe(itemId: number, recipe: XpRecipe): void {
+    this.subRecipeMap.update(m => new Map(m).set(itemId, recipe));
+  }
+
+  private async buildSubRecipeMap(recipes: XpRecipe[]): Promise<{ selected: Map<number, XpRecipe>; available: Map<number, XpRecipe[]> }> {
+    const selected  = new Map<number, XpRecipe>();
+    const available = new Map<number, XpRecipe[]>();
+    const done      = new Set<number>();
+    const pending   = new Set(recipes.flatMap(r => r.ingredients.map(i => i.item_id)));
 
     while (pending.size > 0) {
       const ids = [...pending].filter(id => !done.has(id));
       if (ids.length === 0) break;
       const subRecipes = await window.electronAPI.getRecipesByItemIds(ids);
       for (const sr of subRecipes) {
-        map.set(sr.item_id, sr);
-        sr.ingredients.forEach(i => { if (!done.has(i.item_id)) pending.add(i.item_id); });
+        if (!available.has(sr.item_id)) {
+          available.set(sr.item_id, []);
+          selected.set(sr.item_id, sr);
+          sr.ingredients.forEach(i => { if (!done.has(i.item_id)) pending.add(i.item_id); });
+        }
+        available.get(sr.item_id)!.push(sr);
       }
       ids.forEach(id => { done.add(id); pending.delete(id); });
     }
-    return map;
+    return { selected, available };
   }
 
-  private async loadPrices(recipes: XpRecipe[], subMap: Map<number, XpRecipe>): Promise<void> {
+  private async loadPrices(recipes: XpRecipe[], subMap: Map<number, XpRecipe>, available: Map<number, XpRecipe[]>): Promise<void> {
     const allIds = new Set<number>();
     for (const r of [...recipes, ...subMap.values()]) {
       allIds.add(r.item_id);
       r.ingredients.forEach(i => allIds.add(i.item_id));
     }
+    for (const alternatives of available.values()) {
+      for (const r of alternatives) r.ingredients.forEach(i => allIds.add(i.item_id));
+    }
     if (allIds.size > 0) {
       this.prices.set(await window.electronAPI.getLatestPriceEntries([...allIds]));
     }
+  }
+
+  private selectCheapestSubRecipes(): void {
+    const prices     = this.prices();
+    const profLevels = this.profile.levels();
+    const now        = Date.now();
+    const currentMap = this.subRecipeMap();
+    const updated    = new Map(currentMap);
+
+    for (const [itemId, recipes] of this.availableSubRecipes()) {
+      if (recipes.length <= 1) continue;
+      let bestRecipe = recipes[0];
+      let bestCost   = Infinity;
+      for (const r of recipes) {
+        const { cost } = resolveIngredientsCost(r.ingredients, currentMap, prices, profLevels, now);
+        const perUnit  = cost !== null ? cost / r.result_quantity : Infinity;
+        if (perUnit < bestCost) { bestCost = perUnit; bestRecipe = r; }
+      }
+      updated.set(itemId, bestRecipe);
+    }
+    this.subRecipeMap.set(updated);
   }
 }

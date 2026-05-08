@@ -49,19 +49,20 @@ interface RawWakfuRecipeCategory {
 
 interface SettingRow        { value: string }
 interface ItemRow           { id: number; name: string; type: number; level: number; rarity: number | null }
-interface RecipeRow         { id: number; level: number; xp_ratio: number; category_id: number; result_quantity: number }
+interface RecipeRow         { id: number; level: number; xp_ratio: number; category_id: number; result_quantity: number; category_name: string }
 interface IngredientRow     { quantity: number; item_id: number; item_name: string; item_level: number; item_type: number; rarity: number | null }
 interface PriceRow          { price: number }
 interface PriceItemRow      { item_id: number; price: number }
-interface PriceEntryRow     { item_id: number; price: number; recorded_at: string; not_for_sale: number }
-interface RecipeIdRow           { id: number }
-interface SessionItemDbRow      { session_item_id: number; craft_quantity: number; result_quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null; parent_item_id: number | null }
+interface PriceEntryRow     { id: number; item_id: number; price: number; recorded_at: string; not_for_sale: number }
+interface SessionItemDbRow      { session_item_id: number; craft_quantity: number; result_quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null; parent_item_id: number | null; recipe_id: number | null }
 interface ExistingItemRow       { id: number; quantity: number }
 interface IdRow                 { id: number }
 interface ShoppingIngRow        { quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null }
 interface RecipeCategoryRow     { id: number; name: string; is_innate: number }
-interface XpRecipeRow           { recipe_id: number; recipe_level: number; xp_ratio: number; result_quantity: number; category_id: number; item_id: number; item_name: string; item_level: number; rarity: number | null }
-interface XpIngRow              { item_id: number; quantity: number }
+interface XpRecipeRow           { recipe_id: number; recipe_level: number; xp_ratio: number; result_quantity: number; category_id: number; category_name: string; item_id: number; item_name: string; item_level: number; item_type: number; rarity: number | null }
+interface XpIngRow              { item_id: number; quantity: number; item_name: string; item_level: number; item_type: number }
+interface XpIngredientMapped   { item_id: number; quantity: number; item_name: Record<string, string>; item_level: number; item_type: number }
+interface XpRecipeMapped       { recipe_id: number; recipe_level: number; xp_ratio: number; result_quantity: number; category_id: number; category_name: Record<string, string>; item_id: number; item_name: Record<string, string>; item_level: number; item_type: number; rarity: number; ingredients: XpIngredientMapped[] }
 
 
 export class DatabaseService {
@@ -330,7 +331,8 @@ export class DatabaseService {
 
   private xpRecipeSelect = `
     SELECT r.id AS recipe_id, r.level AS recipe_level, r.xp_ratio, r.result_quantity, r.category_id,
-           i.id AS item_id, i.name AS item_name, i.level AS item_level,
+           COALESCE(rc.name, '{}') AS category_name,
+           i.id AS item_id, i.name AS item_name, i.level AS item_level, i.type AS item_type,
            COALESCE(
              json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
              json_extract(i.raw_data, '$.definition.rarity'),
@@ -338,28 +340,42 @@ export class DatabaseService {
            ) AS rarity
     FROM recipes r
     JOIN items i ON r.result_item_id = i.id
+    LEFT JOIN recipe_categories rc ON rc.id = r.category_id
   `;
 
-  private mapXpRows(rows: XpRecipeRow[]): { recipe_id: number; recipe_level: number; xp_ratio: number; result_quantity: number; category_id: number; item_id: number; item_name: Record<string, string>; item_level: number; rarity: number; ingredients: { item_id: number; quantity: number }[] }[] {
-    const ingStmt = this.db.prepare('SELECT item_id, quantity FROM recipe_ingredients WHERE recipe_id = @recipeId');
+  private mapXpRows(rows: XpRecipeRow[]): XpRecipeMapped[] {
+    const ingStmt = this.db.prepare(`
+      SELECT ri.item_id, ri.quantity, i.name AS item_name, i.level AS item_level, i.type AS item_type
+      FROM recipe_ingredients ri
+      JOIN items i ON i.id = ri.item_id
+      WHERE ri.recipe_id = @recipeId
+    `);
     return rows.map(row => ({
       recipe_id:       row.recipe_id,
       recipe_level:    row.recipe_level,
       xp_ratio:        row.xp_ratio,
       result_quantity: row.result_quantity,
       category_id:     row.category_id,
+      category_name:   JSON.parse(row.category_name) as Record<string, string>,
       item_id:         row.item_id,
       item_name:       JSON.parse(row.item_name) as Record<string, string>,
       item_level:      row.item_level,
+      item_type:       row.item_type,
       rarity:          row.rarity ?? 0,
-      ingredients:     ingStmt.all({ recipeId: row.recipe_id }) as XpIngRow[],
+      ingredients:     (ingStmt.all({ recipeId: row.recipe_id }) as XpIngRow[]).map(ing => ({
+        item_id:    ing.item_id,
+        quantity:   ing.quantity,
+        item_name:  JSON.parse(ing.item_name) as Record<string, string>,
+        item_level: ing.item_level,
+        item_type:  ing.item_type,
+      })),
     }));
   }
 
-  getRecipesByCategory(categoryId: number) {
+  getRecipesByCategoryAndLevel(categoryId: number, minLevel: number, maxLevel: number) {
     const rows = this.db.prepare(
-      `${this.xpRecipeSelect} WHERE r.category_id = @categoryId ORDER BY r.level ASC`
-    ).all({ categoryId }) as XpRecipeRow[];
+      `${this.xpRecipeSelect} WHERE r.category_id = @categoryId and recipe_level between @minLevel and @maxLevel ORDER BY r.level ASC`
+    ).all({ categoryId, minLevel, maxLevel }) as XpRecipeRow[];
     return this.mapXpRows(rows);
   }
 
@@ -419,15 +435,16 @@ export class DatabaseService {
     }));
   }
 
-  getRecipeByItemId(itemId: number): Recipe | null {
-    const recipe = this.db.prepare(`
-      SELECT r.id, r.level, r.xp_ratio, r.category_id, r.result_quantity
-      FROM recipes r WHERE r.result_item_id = @itemId
-    `).get({ itemId }) as RecipeRow | undefined;
+  getRecipesByItemId(itemId: number): Recipe[] {
+    const recipes = this.db.prepare(`
+      SELECT r.id, r.level, r.xp_ratio, r.category_id, r.result_quantity,
+             COALESCE(rc.name, '{}') AS category_name
+      FROM recipes r
+      LEFT JOIN recipe_categories rc ON rc.id = r.category_id
+      WHERE r.result_item_id = @itemId
+    `).all({ itemId }) as RecipeRow[];
 
-    if (!recipe) return null;
-
-    const ingredients = this.db.prepare(`
+    const ingStmt = this.db.prepare(`
       SELECT ri.quantity, i.id AS item_id, i.name AS item_name,
              i.level AS item_level, i.type AS item_type,
              COALESCE(
@@ -438,19 +455,19 @@ export class DatabaseService {
       FROM recipe_ingredients ri
       JOIN items i ON i.id = ri.item_id
       WHERE ri.recipe_id = @recipeId
-    `).all({ recipeId: recipe.id }) as IngredientRow[];
-
+    `);
     const hasRecipeStmt = this.db.prepare('SELECT 1 FROM recipes WHERE result_item_id = ? LIMIT 1');
 
-    return {
+    return recipes.map(recipe => ({
       ...recipe,
-      ingredients: ingredients.map((ing): RecipeIngredient => ({
+      category_name: JSON.parse(recipe.category_name) as Record<string, string>,
+      ingredients:   (ingStmt.all({ recipeId: recipe.id }) as IngredientRow[]).map((ing): RecipeIngredient => ({
         ...ing,
         item_name: JSON.parse(ing.item_name) as Record<string, string>,
         rarity:    ing.rarity ?? 0,
         hasRecipe: !!hasRecipeStmt.get(ing.item_id),
       })),
-    };
+    }));
   }
 
   setPrice(itemId: number, price: number): void {
@@ -487,21 +504,25 @@ export class DatabaseService {
     if (itemIds.length === 0) return {};
     const placeholders = itemIds.map(() => '?').join(',');
     const rows = this.db.prepare(`
-      SELECT item_id, price, recorded_at, not_for_sale FROM price_history p1
+      SELECT rowid AS id, item_id, price, recorded_at, not_for_sale FROM price_history p1
       WHERE item_id IN (${placeholders})
       AND recorded_at = (SELECT MAX(recorded_at) FROM price_history p2 WHERE p2.item_id = p1.item_id)
     `).all(...itemIds) as PriceEntryRow[];
     return Object.fromEntries(rows.map(r => [r.item_id, {
-      price: r.price, recorded_at: r.recorded_at, not_for_sale: !!r.not_for_sale,
+      id: r.id, price: r.price, recorded_at: r.recorded_at, not_for_sale: !!r.not_for_sale,
     }]));
   }
 
   getPriceHistory(itemId: number): PriceEntry[] {
     const rows = this.db.prepare(`
-      SELECT price, recorded_at, not_for_sale FROM price_history
+      SELECT rowid AS id, price, recorded_at, not_for_sale FROM price_history
       WHERE item_id = @item_id ORDER BY recorded_at ASC
     `).all({ item_id: itemId }) as PriceEntryRow[];
-    return rows.map(r => ({ price: r.price, recorded_at: r.recorded_at, not_for_sale: !!r.not_for_sale }));
+    return rows.map(r => ({ id: r.id, price: r.price, recorded_at: r.recorded_at, not_for_sale: !!r.not_for_sale }));
+  }
+
+  deletePriceEntry(id: number): void {
+    this.db.prepare('DELETE FROM price_history WHERE rowid = @id').run({ id });
   }
 
   renameSession(id: number, name: string): void {
@@ -526,7 +547,7 @@ export class DatabaseService {
     this.db.prepare('DELETE FROM craft_sessions WHERE id = ?').run(sessionId);
   }
 
-  addItemToSession(sessionId: number, itemId: number, quantity: number, parentId: number | null = null): number {
+  addItemToSession(sessionId: number, itemId: number, quantity: number, parentId: number | null = null, recipeId: number | null = null): number {
     const existing = this.db.prepare(`
       SELECT id, quantity FROM craft_session_items WHERE session_id = ? AND item_id = ?
     `).get(sessionId, itemId) as ExistingItemRow | undefined;
@@ -537,8 +558,8 @@ export class DatabaseService {
       return existing.id;
     } else {
       const result = this.db.prepare(
-        'INSERT INTO craft_session_items (session_id, item_id, quantity, parent_item_id) VALUES (?, ?, ?, ?)',
-      ).run(sessionId, itemId, quantity, parentId);
+        'INSERT INTO craft_session_items (session_id, item_id, quantity, parent_item_id, recipe_id) VALUES (?, ?, ?, ?, ?)',
+      ).run(sessionId, itemId, quantity, parentId, recipeId);
       return result.lastInsertRowid as number;
     }
   }
@@ -584,7 +605,7 @@ export class DatabaseService {
         SELECT si.id AS session_item_id, si.quantity AS craft_quantity,
                COALESCE(r.result_quantity, 1) AS result_quantity,
                i.id AS item_id, i.name AS item_name, i.level AS item_level,
-               si.parent_item_id,
+               si.parent_item_id, si.recipe_id,
                COALESCE(
                  json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
                  json_extract(i.raw_data, '$.definition.rarity'),
@@ -592,7 +613,7 @@ export class DatabaseService {
                ) AS rarity
         FROM craft_session_items si
         JOIN items i ON i.id = si.item_id
-        LEFT JOIN recipes r ON r.result_item_id = si.item_id
+        LEFT JOIN recipes r ON r.id = si.recipe_id
         WHERE si.session_id = ? AND si.parent_item_id IS NULL
         ORDER BY i.level ASC
       `).all(sessionId) as SessionItemDbRow[],
@@ -606,7 +627,7 @@ export class DatabaseService {
         SELECT si.id AS session_item_id, si.quantity AS craft_quantity,
                COALESCE(r.result_quantity, 1) AS result_quantity,
                i.id AS item_id, i.name AS item_name, i.level AS item_level,
-               si.parent_item_id,
+               si.parent_item_id, si.recipe_id,
                COALESCE(
                  json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
                  json_extract(i.raw_data, '$.definition.rarity'),
@@ -614,7 +635,7 @@ export class DatabaseService {
                ) AS rarity
         FROM craft_session_items si
         JOIN items i ON i.id = si.item_id
-        LEFT JOIN recipes r ON r.result_item_id = si.item_id
+        LEFT JOIN recipes r ON r.id = si.recipe_id
         WHERE si.session_id = ?
       `).all(sessionId) as SessionItemDbRow[],
     );
@@ -627,6 +648,7 @@ export class DatabaseService {
       rarity:          row.rarity ?? 0,
       result_quantity: row.result_quantity ?? 1,
       parent_item_id:  row.parent_item_id ?? null,
+      recipe_id:       row.recipe_id ?? null,
     }));
   }
 
@@ -670,9 +692,7 @@ export class DatabaseService {
     };
 
     for (const si of allItems) {
-      const recipe = this.db.prepare('SELECT id FROM recipes WHERE result_item_id = ?')
-        .get(si.item_id) as RecipeIdRow | undefined;
-      if (!recipe) continue;
+      if (!si.recipe_id) continue;
 
       const ingredients = this.db.prepare(`
         SELECT ri.quantity, i.id AS item_id, i.name AS item_name, i.level AS item_level,
@@ -682,7 +702,7 @@ export class DatabaseService {
                  0
                ) AS rarity
         FROM recipe_ingredients ri JOIN items i ON i.id = ri.item_id WHERE ri.recipe_id = ?
-      `).all(recipe.id) as ShoppingIngRow[];
+      `).all(si.recipe_id) as ShoppingIngRow[];
 
       for (const ing of ingredients) {
         if (craftItemIds.has(ing.item_id)) continue;

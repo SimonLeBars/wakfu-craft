@@ -145,13 +145,17 @@
 
 // ── Saisie du prix marché ────────────────────────────────────────────────────
 
-.price-input-group  { @include price-input-group; flex-shrink: 0; }
-.current-price      { @include current-price; min-width: 60px; }
-.price-input        { @include price-field; &--small { width: 80px; } }
-.price-date         { @include price-date; }
-.btn-save           { @include btn-save; }
-.btn-not-for-sale   { @include btn-not-for-sale; }
-.badge-not-for-sale { @include badge-not-for-sale; }
+.price-input-group { flex-shrink: 0; }
+.current-price     { min-width: 60px; }
+
+// ── Warning niveau métier insuffisant ───────────────────────────────────────
+
+.ingredient__level-warn {
+  @include level-warn;
+  margin: 0 10px 6px 36px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+}
 
 // ── Sous-ingrédients (niveau suivant) ────────────────────────────────────────
 
@@ -162,4 +166,20 @@
   margin: 0 10px 10px 36px; // aligné avec le texte (après la qty)
   padding-left: 12px;
   border-left: 2px solid rgba(245, 158, 11, 0.25);
+}
+
+// ── Sélecteur de recette pour sous-crafts ────────────────────────────────────
+
+.sub-recipe-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.recipe-tab { padding: 3px 8px; font-size: 0.75rem; }
+
+.recipe-tab__warn {
+  font-size: 0.7em;
+  margin-left: 2px;
 }

@@ -43,6 +43,21 @@
       }
     }
 
+    @if (isCraft && availableSubRecipesForThis.length > 1) {
+      <div class="sub-recipe-selector" role="group" [attr.aria-label]="'Recette pour ' + ingredient().item_name['fr']">
+        @for (r of availableSubRecipesForThis; track r.id; let i = $index) {
+          <button
+            class="recipe-tab recipe-tab--small"
+            [class.recipe-tab--active]="subRecipe?.id === r.id"
+            [class.recipe-tab--blocked]="!hasEnoughLevelFor(r)"
+            (click)="onSelectSubRecipe(r)"
+            [attr.aria-pressed]="subRecipe?.id === r.id"
+            [title]="!hasEnoughLevelFor(r) ? (r.category_name['fr'] + ' niv. ' + r.level + ' requis') : ''"
+          >{{ i + 1 }}@if (!hasEnoughLevelFor(r)) {<span class="recipe-tab__warn" aria-hidden="true">⚠</span>}</button>
+        }
+      </div>
+    }
+
     @if (isCraft) {
       <div class="craft-cost-display">
         @if (craftCost; as cost) {
@@ -70,7 +85,9 @@
           [attr.aria-label]="'Prix marché de ' + ingredient().item_name['fr']"
         />
         @if (priceService.getPriceDate(ingredient().item_id); as date) {
-          <span class="price-date" [title]="date | date:'dd/MM/yyyy HH:mm'">
+          <span class="price-date"
+                [class.price-date--stale]="isPriceStale"
+                [title]="date | date:'dd/MM/yyyy HH:mm'">
             {{ date | date:'dd/MM' }}
           </span>
         }
@@ -89,6 +106,12 @@
       </div>
     }
   </div>
+
+  @if (isCraft && subRecipe && !hasEnoughLevelFor(subRecipe)) {
+    <p class="ingredient__level-warn">
+      ⚠ {{ subRecipe.category_name['fr'] }} niv. {{ subRecipe.level }} requis
+    </p>
+  }
 
   <!-- Sous-ingrédients (si en mode craft et profondeur non atteinte) -->
   @if (isCraft && showSubRecipe() && currentDepth() < maxDepth() && subRecipe) {
