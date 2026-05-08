@@ -5,9 +5,19 @@ import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
 import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
 import { OcrStateService, EditableRow } from './ocr-state.service';
 import { PriceService } from '@services/price.service';
-import { itemDisplayName, matchRow, loadGrid, saveGrid } from './ocr-capture.utils';
+import { itemDisplayName, matchRow, loadGrid, saveGrid, loadDefaultRarity, saveDefaultRarity } from './ocr-capture.utils';
 
 const COL_LABELS = ['Nom', 'Lvl', 'Qté', 'Prix'] as const;
+
+const RARITY_OPTIONS = [
+  { value: 0, label: 'Commun' },
+  { value: 2, label: 'Rare' },
+  { value: 3, label: 'Mythique' },
+  { value: 4, label: 'Légendaire' },
+  { value: 5, label: 'Relique' },
+  { value: 6, label: 'Souvenir' },
+  { value: 7, label: 'Épique' },
+] as const;
 
 @Component({
   selector: 'app-ocr-capture',
@@ -23,8 +33,10 @@ export class OcrCaptureComponent {
   protected readonly colLabels      = COL_LABELS;
   protected readonly itemDisplayName = itemDisplayName;
 
-  protected readonly savedGrid = signal(loadGrid());
-  protected readonly scanning  = signal(false);
+  protected readonly rarityOptions  = RARITY_OPTIONS;
+  protected readonly savedGrid      = signal(loadGrid());
+  protected readonly defaultRarity  = signal<number | null>(loadDefaultRarity());
+  protected readonly scanning       = signal(false);
 
   protected readonly tableRows  = this.state.tableRows;
   protected readonly editRows   = this.state.editRows;
@@ -147,13 +159,21 @@ export class OcrCaptureComponent {
     }
   }
 
+  protected setDefaultRarity(value: string): void {
+    const n = value === '' ? null : parseInt(value, 10);
+    const rarity = n !== null && !isNaN(n) ? n : null;
+    this.defaultRarity.set(rarity);
+    saveDefaultRarity(rarity);
+  }
+
   private async autoMatchRows(rows: GridRow[]): Promise<EditableRow[]> {
+    const rarity = this.defaultRarity();
     return Promise.all(rows.map(async (r) => {
       if (r.name.trim().length < 2) {
         return { itemId: null, rarity: null, nameInput: r.name, price: r.price };
       }
       const results = await window.electronAPI.searchItems(r.name.trim(), 'fr');
-      return matchRow(r, results);
+      return matchRow(r, results, rarity);
     }));
   }
 }

@@ -1,7 +1,20 @@
 import { GridConfig, GridRow, WakfuItem } from '@electron';
 import { EditableRow } from './ocr-state.service';
 
-export const GRID_STORAGE_KEY = 'ocr_grid';
+export const GRID_STORAGE_KEY    = 'ocr_grid';
+export const DEFAULT_RARITY_KEY = 'ocr_default_rarity';
+
+export function loadDefaultRarity(): number | null {
+  const raw = localStorage.getItem(DEFAULT_RARITY_KEY);
+  if (raw === null) return null;
+  const n = parseInt(raw, 10);
+  return isNaN(n) ? null : n;
+}
+
+export function saveDefaultRarity(rarity: number | null): void {
+  if (rarity === null) localStorage.removeItem(DEFAULT_RARITY_KEY);
+  else localStorage.setItem(DEFAULT_RARITY_KEY, String(rarity));
+}
 
 export function itemDisplayName(item: WakfuItem): string {
   return item.name['fr'] ?? Object.values(item.name)[0] ?? '?';
@@ -22,7 +35,7 @@ export function levenshtein(a: string, b: string): number {
   return dp[n];
 }
 
-export function matchRow(row: GridRow, results: WakfuItem[]): EditableRow {
+export function matchRow(row: GridRow, results: WakfuItem[], defaultRarity?: number | null): EditableRow {
   const candidates = row.level !== null
     ? results.filter(i => i.level === row.level)
     : results.length === 1 ? results : [];
@@ -31,8 +44,14 @@ export function matchRow(row: GridRow, results: WakfuItem[]): EditableRow {
     return { itemId: null, rarity: null, nameInput: row.name, price: row.price };
   }
 
+  const narrowed = defaultRarity != null && candidates.length > 1
+    ? (candidates.some(i => i.rarity === defaultRarity)
+        ? candidates.filter(i => i.rarity === defaultRarity)
+        : candidates)
+    : candidates;
+
   const ocrName = row.name.trim().toLowerCase();
-  const match   = candidates.reduce((best, item) =>
+  const match   = narrowed.reduce((best, item) =>
     levenshtein(ocrName, itemDisplayName(item).toLowerCase()) <
     levenshtein(ocrName, itemDisplayName(best).toLowerCase()) ? item : best
   );

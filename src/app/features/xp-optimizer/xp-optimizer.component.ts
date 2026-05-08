@@ -1,11 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProfessionProfileService } from '@services/profession-profile.service';
 import { XpOptimizerService } from '@services/xp-optimizer.service';
 import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
 import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
-import { BlockedCraft } from '@services/xp-optimizer.utils';
+import { BlockedCraft, ScanItem } from '@services/xp-optimizer.utils';
 
 @Component({
   selector: 'app-xp-optimizer',
@@ -18,8 +18,21 @@ export class XpOptimizerComponent {
   protected readonly xp      = inject(XpOptimizerService);
   protected readonly profile = inject(ProfessionProfileService);
 
+  protected readonly typeNameMap = computed(() =>
+    new Map(this.xp.itemService.itemTypes().map(t => [t.id, t.name]))
+  );
+
   constructor() {
     this.profile.load();
+  }
+
+  protected typeName(typeId: number): string {
+    return this.typeNameMap().get(typeId)?.['fr'] ?? `Type ${typeId}`;
+  }
+
+  protected truncateList(items: ScanItem[]): (ScanItem | null)[] {
+    if (items.length <= 10) return items;
+    return [...items.slice(0, 5), null, ...items.slice(-5)];
   }
 
   protected gapClass(gap: number): string {

@@ -2,17 +2,19 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { PriceEntry, XpRecipe } from '@electron';
 import { ProfessionProfileService } from './profession-profile.service';
 import { SessionService } from './session.service';
+import { ItemService } from './item.service';
 import {
-  SortMode, XpRow, SubCraftItem, BlockedCraft,
-  buildXpRow, collectSubCrafts, collectBlockedCrafts, wouldCraft, resolveIngredientsCost,
+  SortMode, XpRow, SubCraftItem, BlockedCraft, ScanGroup,
+  buildXpRow, collectSubCrafts, collectBlockedCrafts, wouldCraft, resolveIngredientsCost, buildScanGroups,
 } from './xp-optimizer.utils';
 
-export type { SortMode, XpRow, SubCraftItem, BlockedCraft };
+export type { SortMode, XpRow, SubCraftItem, BlockedCraft, ScanGroup };
 
 @Injectable({ providedIn: 'root' })
 export class XpOptimizerService {
   private readonly profile        = inject(ProfessionProfileService);
   private readonly sessionService = inject(SessionService);
+  readonly itemService            = inject(ItemService);
 
   readonly selectedCatId       = signal<number | null>(null);
   readonly playerLevel         = signal<number>(100);
@@ -28,6 +30,17 @@ export class XpOptimizerService {
   readonly dialogCheckedBlocked = signal<Set<number>>(new Set());
 
   readonly craftCategories = computed(() => this.profile.categories().filter(c => !c.is_innate));
+
+  readonly scanGroups = computed((): ScanGroup[] => {
+    const groups    = buildScanGroups(this.rows(), this.subRecipeMap(), this.availableSubRecipes(), this.prices(), Date.now());
+    const typeNames = new Map(this.itemService.itemTypes().map(t => [t.id, t.name['fr'] ?? '']));
+    return groups.sort((a, b) => {
+      const na = typeNames.get(a.type_id) ?? '';
+      const nb = typeNames.get(b.type_id) ?? '';
+      const c  = na.localeCompare(nb, 'fr');
+      return c !== 0 ? c : a.bracket_min - b.bracket_min;
+    });
+  });
 
   readonly dialogSubCrafts = computed((): SubCraftItem[] => {
     const row = this.dialogRow();
@@ -64,26 +77,38 @@ export class XpOptimizerService {
     this.selectedCatId.set(id);
     this.recipes.set([]);
     this.subRecipeMap.set(new Map());
+    this.availableSubRecipes.set(new Map());
     this.prices.set({});
     if (!id) return;
 
+    if (this.itemService.itemTypes().length === 0) await this.itemService.loadItemTypes();
     this.playerLevel.set(this.profile.getLevel(id));
     this.isLoading.set(true);
     try {
-      const recipes = await window.electronAPI.getRecipesByCategory(id);
-      this.recipes.set(recipes);
-      const { selected, available } = await this.buildSubRecipeMap(recipes);
-      this.subRecipeMap.set(selected);
-      this.availableSubRecipes.set(available);
-      await this.loadPrices(recipes, selected);
+      await this.loadCategoryRecipes(id, this.playerLevel());
     } finally {
       this.isLoading.set(false);
     }
   }
 
+  private async loadCategoryRecipes(categoryId: number, playerLevel: number): Promise<void> {
+    const recipes = await window.electronAPI.getRecipesByCategoryAndLevel(
+      categoryId, playerLevel - 19, playerLevel + 9,
+    );
+    this.recipes.set(recipes);
+
+    const { selected, available } = await this.buildSubRecipeMap(recipes);
+    this.subRecipeMap.set(selected);
+    this.availableSubRecipes.set(available);
+
+    await this.loadPrices(recipes, selected, available);
+    this.selectCheapestSubRecipes();
+  }
+
   async refreshPrices(): Promise<void> {
     if (this.recipes().length === 0) return;
-    await this.loadPrices(this.recipes(), this.subRecipeMap());
+    await this.loadPrices(this.recipes(), this.subRecipeMap(), this.availableSubRecipes());
+    this.selectCheapestSubRecipes();
   }
 
   openDialog(row: XpRow): void {
@@ -181,20 +206,18 @@ export class XpOptimizerService {
     return { selected, available };
   }
 
-  private async loadPrices(recipes: XpRecipe[], subMap: Map<number, XpRecipe>): Promise<void> {
+  private async loadPrices(recipes: XpRecipe[], subMap: Map<number, XpRecipe>, available: Map<number, XpRecipe[]>): Promise<void> {
     const allIds = new Set<number>();
     for (const r of [...recipes, ...subMap.values()]) {
       allIds.add(r.item_id);
       r.ingredients.forEach(i => allIds.add(i.item_id));
     }
-    // Inclure aussi les ingrédients des recettes alternatives non sélectionnées
-    for (const alternatives of this.availableSubRecipes().values()) {
+    for (const alternatives of available.values()) {
       for (const r of alternatives) r.ingredients.forEach(i => allIds.add(i.item_id));
     }
     if (allIds.size > 0) {
       this.prices.set(await window.electronAPI.getLatestPriceEntries([...allIds]));
     }
-    this.selectCheapestSubRecipes();
   }
 
   private selectCheapestSubRecipes(): void {

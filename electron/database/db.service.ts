@@ -59,8 +59,10 @@ interface ExistingItemRow       { id: number; quantity: number }
 interface IdRow                 { id: number }
 interface ShoppingIngRow        { quantity: number; item_id: number; item_name: string; item_level: number; rarity: number | null }
 interface RecipeCategoryRow     { id: number; name: string; is_innate: number }
-interface XpRecipeRow           { recipe_id: number; recipe_level: number; xp_ratio: number; result_quantity: number; category_id: number; category_name: string; item_id: number; item_name: string; item_level: number; rarity: number | null }
-interface XpIngRow              { item_id: number; quantity: number }
+interface XpRecipeRow           { recipe_id: number; recipe_level: number; xp_ratio: number; result_quantity: number; category_id: number; category_name: string; item_id: number; item_name: string; item_level: number; item_type: number; rarity: number | null }
+interface XpIngRow              { item_id: number; quantity: number; item_name: string; item_level: number; item_type: number }
+interface XpIngredientMapped   { item_id: number; quantity: number; item_name: Record<string, string>; item_level: number; item_type: number }
+interface XpRecipeMapped       { recipe_id: number; recipe_level: number; xp_ratio: number; result_quantity: number; category_id: number; category_name: Record<string, string>; item_id: number; item_name: Record<string, string>; item_level: number; item_type: number; rarity: number; ingredients: XpIngredientMapped[] }
 
 
 export class DatabaseService {
@@ -330,7 +332,7 @@ export class DatabaseService {
   private xpRecipeSelect = `
     SELECT r.id AS recipe_id, r.level AS recipe_level, r.xp_ratio, r.result_quantity, r.category_id,
            COALESCE(rc.name, '{}') AS category_name,
-           i.id AS item_id, i.name AS item_name, i.level AS item_level,
+           i.id AS item_id, i.name AS item_name, i.level AS item_level, i.type AS item_type,
            COALESCE(
              json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
              json_extract(i.raw_data, '$.definition.rarity'),
@@ -341,8 +343,13 @@ export class DatabaseService {
     LEFT JOIN recipe_categories rc ON rc.id = r.category_id
   `;
 
-  private mapXpRows(rows: XpRecipeRow[]): { recipe_id: number; recipe_level: number; xp_ratio: number; result_quantity: number; category_id: number; category_name: Record<string, string>; item_id: number; item_name: Record<string, string>; item_level: number; rarity: number; ingredients: { item_id: number; quantity: number }[] }[] {
-    const ingStmt = this.db.prepare('SELECT item_id, quantity FROM recipe_ingredients WHERE recipe_id = @recipeId');
+  private mapXpRows(rows: XpRecipeRow[]): XpRecipeMapped[] {
+    const ingStmt = this.db.prepare(`
+      SELECT ri.item_id, ri.quantity, i.name AS item_name, i.level AS item_level, i.type AS item_type
+      FROM recipe_ingredients ri
+      JOIN items i ON i.id = ri.item_id
+      WHERE ri.recipe_id = @recipeId
+    `);
     return rows.map(row => ({
       recipe_id:       row.recipe_id,
       recipe_level:    row.recipe_level,
@@ -353,15 +360,22 @@ export class DatabaseService {
       item_id:         row.item_id,
       item_name:       JSON.parse(row.item_name) as Record<string, string>,
       item_level:      row.item_level,
+      item_type:       row.item_type,
       rarity:          row.rarity ?? 0,
-      ingredients:     ingStmt.all({ recipeId: row.recipe_id }) as XpIngRow[],
+      ingredients:     (ingStmt.all({ recipeId: row.recipe_id }) as XpIngRow[]).map(ing => ({
+        item_id:    ing.item_id,
+        quantity:   ing.quantity,
+        item_name:  JSON.parse(ing.item_name) as Record<string, string>,
+        item_level: ing.item_level,
+        item_type:  ing.item_type,
+      })),
     }));
   }
 
-  getRecipesByCategory(categoryId: number) {
+  getRecipesByCategoryAndLevel(categoryId: number, minLevel: number, maxLevel: number) {
     const rows = this.db.prepare(
-      `${this.xpRecipeSelect} WHERE r.category_id = @categoryId ORDER BY r.level ASC`
-    ).all({ categoryId }) as XpRecipeRow[];
+      `${this.xpRecipeSelect} WHERE r.category_id = @categoryId and recipe_level between @minLevel and @maxLevel ORDER BY r.level ASC`
+    ).all({ categoryId, minLevel, maxLevel }) as XpRecipeRow[];
     return this.mapXpRows(rows);
   }
 

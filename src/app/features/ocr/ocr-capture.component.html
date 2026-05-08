@@ -27,6 +27,21 @@
           >
             @if (scanning()) { Analyse… } @else { Scanner le tableau }
           </button>
+          <div class="rarity-default">
+            <label for="default-rarity" class="rarity-default__label">Rareté par défaut</label>
+            <select
+              id="default-rarity"
+              class="rarity-default__select"
+              [value]="defaultRarity() ?? ''"
+              (change)="setDefaultRarity($any($event.target).value)"
+              aria-label="Rareté par défaut pour le matching automatique"
+            >
+              <option value="">— Toutes —</option>
+              @for (opt of rarityOptions; track opt.value) {
+                <option [value]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+          </div>
         </div>
 
         @if (status()) {

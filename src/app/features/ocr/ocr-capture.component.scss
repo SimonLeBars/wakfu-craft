@@ -56,7 +56,34 @@
 .region-info  { font-family: monospace; font-size: 0.9rem; color: #4ade80; margin-bottom: 14px; }
 .region-empty { color: #666; font-style: italic; margin-bottom: 14px; }
 
-.grid-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.grid-actions { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+
+.rarity-default {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  &__label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #a0a0d0;
+  }
+
+  &__select {
+    padding: 5px 8px;
+    background: #0f0f1a;
+    border: 1px solid #2a2a3e;
+    border-radius: 5px;
+    color: #e2e2f0;
+    font-size: 0.85rem;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+    &:focus { border-color: #5865f2; }
+  }
+}
 
 .btn-primary {
   padding: 8px 16px;

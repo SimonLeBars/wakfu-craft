@@ -30,6 +30,14 @@ export interface RecipeCategory {
   is_innate: boolean;
 }
 
+export interface XpIngredient {
+  item_id:    number;
+  quantity:   number;
+  item_name:  Record<string, string>;
+  item_level: number;
+  item_type:  number;
+}
+
 export interface XpRecipe {
   recipe_id:       number;
   recipe_level:    number;
@@ -40,8 +48,9 @@ export interface XpRecipe {
   item_id:         number;
   item_name:       Record<string, string>;
   item_level:      number;
+  item_type:       number;
   rarity:          number;
-  ingredients:     { item_id: number; quantity: number }[];
+  ingredients:     XpIngredient[];
 }
 
 export interface WakfuItem {
@@ -125,7 +134,7 @@ export interface ElectronAPI {
   getRecipeCategories:  () => Promise<RecipeCategory[]>;
   getProfessionLevels:  () => Promise<Record<number, number>>;
   setProfessionLevels:  (levels: Record<number, number>) => Promise<void>;
-  getRecipesByCategory: (categoryId: number) => Promise<XpRecipe[]>;
+  getRecipesByCategoryAndLevel: (categoryId: number, minLevel: number, maxLevel: number) => Promise<XpRecipe[]>;
   getRecipesByItemIds:  (itemIds: number[])  => Promise<XpRecipe[]>;
   searchItems:       (query: string, lang?: string, typeIds?: number[], minLevel?: number, maxLevel?: number, rarities?: number[]) => Promise<WakfuItem[]>;
   getRecipesByItemId: (itemId: number) => Promise<Recipe[]>;

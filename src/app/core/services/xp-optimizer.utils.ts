@@ -1,4 +1,4 @@
-import { PriceEntry, XpRecipe } from '@electron';
+import { PriceEntry, XpIngredient, XpRecipe } from '@electron';
 
 export type SortMode = 'xp-per-cost' | 'xp-times-profit';
 
@@ -175,6 +175,111 @@ function xpFactors(gap: number): { successRate: number; xpMultiplier: number } {
 export function computeEffectiveXp(xpRatio: number, gap: number): number {
   const { successRate, xpMultiplier } = xpFactors(gap);
   return xpRatio * xpMultiplier * successRate;
+}
+
+export interface ScanItem {
+  item_id:    number;
+  item_name:  Record<string, string>;
+  item_level: number;
+  item_type:  number;
+  status:     'missing' | 'stale';
+}
+
+export interface ScanGroup {
+  type_id:     number;
+  bracket_min: number;
+  bracket_max: number;
+  missing:     ScanItem[];
+  stale:       ScanItem[];
+}
+
+function levelBracket(level: number): { min: number; max: number } {
+  const idx = Math.floor((level - 1) / 15);
+  return { min: idx * 15 + 1, max: idx * 15 + 15 };
+}
+
+export function buildScanGroups(
+  recipes: XpRecipe[],
+  subMap:  Map<number, XpRecipe>,
+  altMap:  Map<number, XpRecipe[]>,
+  prices:  Record<number, PriceEntry>,
+  now:     number,
+): ScanGroup[] {
+  const seen      = new Set<number>();
+  const scanItems: ScanItem[] = [];
+
+  function addItem(item_id: number, item_name: Record<string, string>, item_level: number, item_type: number): void {
+    if (seen.has(item_id)) return;
+    seen.add(item_id);
+    const entry = prices[item_id];
+    if (!entry) {
+      scanItems.push({ item_id, item_name, item_level, item_type, status: 'missing' });
+    } else if (!entry.not_for_sale && now - new Date(entry.recorded_at).getTime() > ONE_DAY_MS) {
+      scanItems.push({ item_id, item_name, item_level, item_type, status: 'stale' });
+    }
+  }
+
+  // followAlts=true  : on est dans le chemin sélectionné → les alternatives de cet ingrédient sont explorées
+  // followAlts=false : on est déjà à l'intérieur d'une alternative → on n'explore pas ses propres alternatives
+  function traverse(ingredients: XpIngredient[], visited: Set<number>, followAlts: boolean): void {
+    for (const ing of ingredients) {
+      if (visited.has(ing.item_id)) continue;
+      addItem(ing.item_id, ing.item_name, ing.item_level, ing.item_type);
+      const nextVisited = new Set(visited).add(ing.item_id);
+      const selected = subMap.get(ing.item_id);
+      if (selected) traverse(selected.ingredients, nextVisited, followAlts);
+      if (followAlts) {
+        for (const alt of altMap.get(ing.item_id) ?? []) {
+          if (alt === selected) continue;
+          traverse(alt.ingredients, nextVisited, false);
+        }
+      }
+    }
+  }
+
+  for (const recipe of recipes) {
+    addItem(recipe.item_id, recipe.item_name, recipe.item_level, recipe.item_type);
+    traverse(recipe.ingredients, new Set([recipe.item_id]), true);
+  }
+
+  const groupMap = new Map<string, ScanGroup>();
+  for (const item of scanItems) {
+    const { min, max } = levelBracket(item.item_level);
+    const key = `${item.item_type}_${min}`;
+    let group = groupMap.get(key);
+    if (!group) {
+      group = { type_id: item.item_type, bracket_min: min, bracket_max: max, missing: [], stale: [] };
+      groupMap.set(key, group);
+    }
+    if (item.status === 'missing') group.missing.push(item);
+    else group.stale.push(item);
+  }
+
+  // Merge adjacent brackets of the same type
+  const byType = [...groupMap.values()].sort((a, b) =>
+    a.type_id !== b.type_id ? a.type_id - b.type_id : a.bracket_min - b.bracket_min
+  );
+  const merged: ScanGroup[] = [];
+  for (const group of byType) {
+    const prev = merged[merged.length - 1];
+    if (prev && prev.type_id === group.type_id && prev.bracket_max + 1 === group.bracket_min) {
+      prev.bracket_max = group.bracket_max;
+      prev.missing.push(...group.missing);
+      prev.stale.push(...group.stale);
+    } else {
+      merged.push(group);
+    }
+  }
+
+  const byLevel = (a: ScanItem, b: ScanItem) => a.item_level - b.item_level;
+  for (const g of merged) {
+    g.missing.sort(byLevel);
+    g.stale.sort(byLevel);
+  }
+
+  return merged.sort((a, b) =>
+    a.bracket_min !== b.bracket_min ? a.bracket_min - b.bracket_min : a.type_id - b.type_id
+  );
 }
 
 export function buildXpRow(
