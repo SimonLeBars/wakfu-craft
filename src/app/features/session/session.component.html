@@ -72,7 +72,13 @@
       <div class="session-crafts">
         <h3>Planifiés</h3>
         @for (item of sessionService.sessionItems(); track item.session_item_id) {
-          <div class="craft-item">
+          <div class="craft-item"
+               [attr.tabindex]="item.children.length > 0 ? 0 : null"
+               [attr.aria-describedby]="item.children.length > 0 ? 'craft-tooltip-' + item.session_item_id : null"
+               (mouseenter)="showCraftTooltip(item, $event)"
+               (mouseleave)="hideCraftTooltip()"
+               (focus)="showCraftTooltip(item, $event)"
+               (blur)="hideCraftTooltip()">
             <span class="craft-item__name">
               {{ item.item_name['fr'] }}
               <app-copy-btn [text]="item.item_name['fr']" />
@@ -214,7 +220,7 @@
         <div class="craft-order">
           <h3 class="craft-order__title">Ordre de craft</h3>
           <ol class="craft-order__list" aria-label="Ordre des crafts">
-            @for (step of sessionService.craftOrder(); track step.session_item_id) {
+            @for (step of sessionService.craftOrder(); track $index) {
               <li class="craft-order__item">
                 <span class="craft-order__num">{{ $index + 1 }}</span>
                 <span class="craft-order__info">
@@ -232,3 +238,20 @@
   </div>
 
 </div>
+
+@if (hoveredNode() && tooltipPos()) {
+  <div class="craft-tooltip"
+       [id]="'craft-tooltip-' + hoveredNode()!.session_item_id"
+       role="tooltip"
+       [style.left.px]="tooltipPos()!.x"
+       [style.top.px]="tooltipPos()!.y">
+    <div class="craft-tooltip__title">{{ hoveredNode()!.item_name['fr'] }}</div>
+    <div class="craft-tooltip__label">Sous-crafts</div>
+    @for (sub of hoveredSubCrafts(); track $index) {
+      <div class="craft-tooltip__row" [style.padding-left.px]="sub.depth * 10">
+        <span class="craft-tooltip__name">{{ sub.name }}</span>
+        <span class="craft-tooltip__qty">× {{ sub.qty }}</span>
+      </div>
+    }
+  </div>
+}

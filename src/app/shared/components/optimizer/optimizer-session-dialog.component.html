@@ -1,0 +1,66 @@
+<div class="dialog-backdrop" (click)="closeDialog.emit()" role="dialog" aria-modal="true" [attr.aria-label]="'Ajouter ' + row().item_name['fr'] + ' à la session'">
+  <div class="dialog-panel" (click)="$event.stopPropagation()">
+
+    <h2 class="dialog-title">
+      Ajouter à la session
+      <span class="badge-rarity" [style.color]="row().rarity | rarityColor">{{ row().rarity | rarityLabel }}</span>
+      {{ row().item_name['fr'] }}
+    </h2>
+
+    <div class="dialog-qty-row">
+      <label for="dialog-qty" class="control-label">Nombre de crafts</label>
+      <input
+        id="dialog-qty"
+        type="number"
+        min="1"
+        class="control-input"
+        [ngModel]="qty()"
+        (ngModelChange)="qtyChange.emit(+$event || 1)"
+      />
+    </div>
+
+    @if (subCrafts().length > 0) {
+      <div class="dialog-subcrafts">
+        <p class="dialog-subcrafts-label">Sous-crafts détectés</p>
+        <ul class="subcrafts-list">
+          @for (sc of subCrafts(); track sc.item_id) {
+            <li>
+              <span class="badge-rarity" [style.color]="sc.rarity | rarityColor">{{ sc.rarity | rarityLabel }}</span>
+              {{ sc.item_name['fr'] }}
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    @if (blockedCrafts().length > 0) {
+      <div class="dialog-subcrafts dialog-blocked">
+        <p class="dialog-subcrafts-label">
+          Crafts moins chers mais niveau insuffisant
+        </p>
+        <ul class="subcrafts-list">
+          @for (bc of blockedCrafts(); track bc.item_id) {
+            <li>
+              <label class="blocked-craft-label">
+                <input
+                  type="checkbox"
+                  [checked]="checkedBlocked().has(bc.item_id)"
+                  (change)="toggleBlocked.emit(bc.item_id)"
+                  [attr.aria-label]="'Inclure le craft de ' + bc.item_name['fr']"
+                />
+                <span class="blocked-craft-name">{{ bc.item_name['fr'] }}</span>
+                <span class="blocked-craft-hint">{{ bc.category_name['fr'] }} niv. {{ bc.required_level }}</span>
+              </label>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    <div class="dialog-actions">
+      <button class="btn-cancel" (click)="closeDialog.emit()">Annuler</button>
+      <button class="btn-confirm" (click)="confirmAdd.emit()">Ajouter</button>
+    </div>
+
+  </div>
+</div>

@@ -1,13 +1,70 @@
-import { Injectable, signal } from '@angular/core';
-import { CraftSession, Recipe, SessionItem, ShoppingItem } from '@electron';
+import { Injectable, computed, signal } from '@angular/core';
+import { CraftSession, Recipe, RecipeTreeNode, ShoppingItem } from '@electron';
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
   readonly sessions      = signal<CraftSession[]>([]);
   readonly activeSession = signal<CraftSession | null>(null);
-  readonly sessionItems  = signal<SessionItem[]>([]);
-  readonly shoppingList  = signal<ShoppingItem[]>([]);
-  readonly craftOrder    = signal<SessionItem[]>([]);
+  readonly sessionItems  = signal<RecipeTreeNode[]>([]);
+
+  readonly shoppingList = computed<ShoppingItem[]>(() => {
+    const aggregated = new Map<number, ShoppingItem>();
+    const visit = (node: RecipeTreeNode) => {
+      for (const ing of node.bought_ingredients) {
+        const existing = aggregated.get(ing.item_id);
+        if (existing) {
+          existing.total_quantity += ing.quantity;
+        } else {
+          aggregated.set(ing.item_id, { ...ing, total_quantity: ing.quantity });
+        }
+      }
+      for (const child of node.children) visit(child);
+    };
+    for (const root of this.sessionItems()) visit(root);
+    return [...aggregated.values()].sort((a, b) => (b.item_level ?? 0) - (a.item_level ?? 0));
+  });
+
+  readonly craftOrder = computed<RecipeTreeNode[]>(() => {
+    // 1. Collect all crafted nodes grouped by item_id, merging qty and deps
+    const steps = new Map<number, { node: RecipeTreeNode; qty: number; deps: Set<number> }>();
+    const collect = (node: RecipeTreeNode) => {
+      for (const child of node.children) collect(child);
+      const childIds = new Set(node.children.map(c => c.item_id));
+      const existing = steps.get(node.item_id);
+      if (existing) {
+        existing.qty += node.craft_quantity;
+        for (const id of childIds) existing.deps.add(id);
+      } else {
+        steps.set(node.item_id, { node: { ...node }, qty: node.craft_quantity, deps: childIds });
+      }
+    };
+    for (const root of this.sessionItems()) collect(root);
+
+    // 2. Build in-degree map and reverse adjacency (dep → items that need it)
+    const inDegree   = new Map<number, number>([...steps.keys()].map(id => [id, 0]));
+    const dependents = new Map<number, number[]>([...steps.keys()].map(id => [id, []]));
+    for (const [itemId, { deps }] of steps) {
+      for (const depId of deps) {
+        inDegree.set(itemId, inDegree.get(itemId)! + 1);
+        dependents.get(depId)!.push(itemId);
+      }
+    }
+
+    // 3. Kahn's topological sort — leaves (no deps) first, roots last
+    const queue  = [...steps.keys()].filter(id => inDegree.get(id) === 0);
+    const result: RecipeTreeNode[] = [];
+    while (queue.length > 0) {
+      const id   = queue.shift()!;
+      const step = steps.get(id)!;
+      result.push({ ...step.node, craft_quantity: step.qty });
+      for (const dependent of dependents.get(id)!) {
+        const deg = inDegree.get(dependent)! - 1;
+        inDegree.set(dependent, deg);
+        if (deg === 0) queue.push(dependent);
+      }
+    }
+    return result;
+  });
 
   async loadSessions(): Promise<void> {
     const list = await window.electronAPI.sessions.getAll();
@@ -35,17 +92,15 @@ export class SessionService {
     await this.loadSessions();
   }
 
-  // Ajoute un item en session et retourne son session_item_id.
-  // L'appelant doit appeler refreshData() lorsque tous les ajouts sont terminés.
   async addItem(
-    itemId:   number,
-    quantity: number,
-    parentId: number | null = null,
-    recipeId: number | null = null,
+    itemId:     number,
+    quantity:   number,
+    recipeId:   number | null = null,
+    subRecipes: Record<number, number> = {},
   ): Promise<number> {
     const session = this.activeSession();
     if (!session) return -1;
-    return window.electronAPI.sessions.addItem(session.id, itemId, quantity, parentId, recipeId);
+    return window.electronAPI.sessions.addItem(session.id, itemId, quantity, recipeId, subRecipes);
   }
 
   async addItemTree(
@@ -54,19 +109,13 @@ export class SessionService {
     craftIds: Set<number>,
     recipe:   Recipe | null,
     subRecs:  Partial<Record<number, Recipe | null>>,
-    visited   = new Set<number>(),
-    parentId: number | null = null,
   ): Promise<void> {
-    const sessionItemId = await this.addItem(itemId, quantity, parentId, recipe?.id ?? null);
-    if (!recipe) return;
-    for (const ing of recipe.ingredients) {
-      if (!craftIds.has(ing.item_id) || visited.has(ing.item_id)) continue;
-      visited.add(ing.item_id);
-      await this.addItemTree(
-        ing.item_id, ing.quantity * quantity, craftIds,
-        subRecs[ing.item_id] ?? null, subRecs, visited, sessionItemId,
-      );
+    const subRecipes: Record<number, number> = {};
+    for (const craftedId of craftIds) {
+      const r = subRecs[craftedId];
+      if (r?.id != null) subRecipes[craftedId] = r.id;
     }
+    await this.addItem(itemId, quantity, recipe?.id ?? null, subRecipes);
   }
 
   async refreshData(): Promise<void> {
@@ -98,13 +147,6 @@ export class SessionService {
   private async refreshSessionData(): Promise<void> {
     const session = this.activeSession();
     if (!session) return;
-    const [items, shopping, craftOrder] = await Promise.all([
-      window.electronAPI.sessions.getItems(session.id),
-      window.electronAPI.sessions.getShoppingList(session.id),
-      window.electronAPI.sessions.getCraftOrder(session.id),
-    ]);
-    this.sessionItems.set(items);
-    this.shoppingList.set(shopping);
-    this.craftOrder.set(craftOrder);
+    this.sessionItems.set(await window.electronAPI.sessions.getTree(session.id));
   }
 }

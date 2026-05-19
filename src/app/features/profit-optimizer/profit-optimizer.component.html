@@ -1,27 +1,27 @@
-<div class="xp-layout">
+<div class="profit-layout">
 
   <app-optimizer-controls
-    [craftCategories]="xp.craftCategories()"
-    [selectedCatId]="xp.selectedCatId()"
-    [playerLevel]="xp.playerLevel()"
+    [craftCategories]="profit.craftCategories()"
+    [selectedCatId]="profit.selectedCatId()"
+    [playerLevel]="profit.playerLevel()"
     [sortOptions]="sortOptions"
-    [sortMode]="xp.sortMode()"
+    [sortMode]="profit.sortMode()"
     [sortHint]="sortHint()"
-    (categoryChange)="xp.onCategoryChange($event)"
-    (levelChange)="xp.onLevelChange($event)"
+    (categoryChange)="profit.onCategoryChange($event)"
+    (levelChange)="profit.onLevelChange($event)"
     (sortModeChange)="setSortMode($event)"
-    (refresh)="xp.refreshPrices()"
+    (refresh)="profit.refreshPrices()"
   />
 
-  @if (xp.selectedCatId() && !xp.isLoading() && xp.scanGroups().length > 0) {
-    <app-optimizer-scan-helper [scanGroups]="xp.scanGroups()" [typeNames]="typeNames()" />
+  @if (profit.selectedCatId() && !profit.isLoading() && profit.scanGroups().length > 0) {
+    <app-optimizer-scan-helper [scanGroups]="profit.scanGroups()" [typeNames]="typeNames()" />
   }
 
-  @if (!xp.selectedCatId()) {
+  @if (!profit.selectedCatId()) {
     <div class="empty-state">Sélectionne un métier pour voir les recettes</div>
-  } @else if (xp.isLoading()) {
+  } @else if (profit.isLoading()) {
     <div class="loading" aria-live="polite">Chargement...</div>
-  } @else if (xp.rows().length === 0) {
+  } @else if (profit.rows().length === 0) {
     <div class="empty-state">Aucune recette trouvée — pense à synchroniser les données.</div>
   } @else {
     <div class="search-bar" role="search">
@@ -30,34 +30,30 @@
         type="search"
         class="search-input"
         placeholder="Rechercher un item… (Ctrl+F)"
-        [ngModel]="xp.searchQuery()"
-        (ngModelChange)="xp.searchQuery.set($event)"
-        (keydown.escape)="xp.searchQuery.set('')"
+        [ngModel]="profit.searchQuery()"
+        (ngModelChange)="profit.searchQuery.set($event)"
+        (keydown.escape)="profit.searchQuery.set('')"
         aria-label="Rechercher un item par nom"
       />
-      @if (xp.searchQuery()) {
-        <button class="search-clear" (click)="xp.searchQuery.set('')" aria-label="Effacer la recherche">×</button>
+      @if (profit.searchQuery()) {
+        <button class="search-clear" (click)="profit.searchQuery.set('')" aria-label="Effacer la recherche">×</button>
       }
     </div>
 
     @if (filteredRows().length === 0) {
-      <div class="empty-state">Aucun résultat pour « {{ xp.searchQuery() }} »</div>
+      <div class="empty-state">Aucun résultat pour « {{ profit.searchQuery() }} »</div>
     } @else {
-      <div class="table-wrapper" role="region" aria-label="Recettes classées">
+      <div class="table-wrapper" role="region" aria-label="Recettes classées par rentabilité">
         <table class="recipes-table">
           <thead>
             <tr>
               <th scope="col" class="col-name">Item</th>
               <th scope="col" class="col-level">Niv.</th>
-              <th scope="col" class="col-gap">Écart</th>
-              <th scope="col" class="col-success">Succès</th>
-              <th scope="col" class="col-xp">XP/craft</th>
               <th scope="col" class="col-cost">Coût ingr.</th>
               <th scope="col" class="col-revenue">Revenu</th>
               <th scope="col" class="col-profit">Profit</th>
-              <th scope="col" class="col-roi">ROI</th>
               <th scope="col" class="col-score">
-                {{ xp.sortMode() === 'xp-per-cost' ? 'XP/1000k' : 'XP×ROI' }}
+                {{ profit.sortMode() === 'profit' ? 'Profit brut' : 'ROI %' }}
               </th>
               <th scope="col" class="col-actions"></th>
             </tr>
@@ -74,32 +70,22 @@
                     [resultQuantity]="row.result_quantity"
                 ></td>
                 <td class="col-level">{{ row.recipe_level }}</td>
-                <td class="col-gap">
-                  <span class="gap-badge" [class]="gapClass(row.gap)">
-                    {{ row.gap > 0 ? '+' : '' }}{{ row.gap }}
-                  </span>
-                </td>
-                <td class="col-success">{{ (row.successRate * 100) | number:'1.0-0' }}%</td>
-                <td class="col-xp">{{ row.effectiveXp | number:'1.0-1' }}</td>
                 <td class="col-cost">{{ row.ingredientCost !== null ? ((row.ingredientCost | number:'1.0-0') + ' k') : '—' }}</td>
                 <td class="col-revenue">{{ row.sellRevenue !== null ? ((row.sellRevenue | number:'1.0-0') + ' k') : '—' }}</td>
                 <td class="col-profit" [class.val--positive]="row.profit !== null && row.profit > 0" [class.val--negative]="row.profit !== null && row.profit < 0">
                   {{ row.profit !== null ? ((row.profit | number:'1.0-0') + ' k') : '—' }}
                 </td>
-                <td class="col-roi" [class.val--positive]="row.roi !== null && row.roi > 0" [class.val--negative]="row.roi !== null && row.roi < 0">
-                  {{ row.roi !== null ? (row.roi | number:'1.0-1') + ' %' : '—' }}
-                </td>
-                <td class="col-score">
-                  @if (xp.sortMode() === 'xp-per-cost') {
-                    {{ formatXpPerCost(row.xpPerCost) }}
+                <td class="col-score" [class.val--positive]="row.score !== null && row.score > 0" [class.val--negative]="row.score !== null && row.score < 0">
+                  @if (profit.sortMode() === 'profit') {
+                    {{ formatProfit(row.profit) }}
                   } @else {
-                    {{ formatXpTimesRoi(row.xpTimesRoi) }}
+                    {{ formatRoi(row.roi) }}
                   }
                 </td>
                 <td class="col-actions">
                   <button
                     class="btn-add-session"
-                    (click)="xp.openDialog(row)"
+                    (click)="profit.openDialog(row)"
                     [attr.aria-label]="'Ajouter ' + row.item_name['fr'] + ' à la session'"
                     title="Ajouter à la session de craft"
                   >+</button>
@@ -114,16 +100,16 @@
 
 </div>
 
-@if (xp.dialogRow(); as row) {
+@if (profit.dialogRow(); as row) {
   <app-optimizer-session-dialog
     [row]="row"
-    [qty]="xp.dialogQty()"
-    [subCrafts]="xp.dialogSubCrafts()"
-    [blockedCrafts]="xp.dialogBlockedCrafts()"
-    [checkedBlocked]="xp.dialogCheckedBlocked()"
-    (closeDialog)="xp.closeDialog()"
-    (confirmAdd)="xp.confirmAdd()"
-    (qtyChange)="xp.dialogQty.set($event)"
-    (toggleBlocked)="xp.toggleBlockedCraft($event)"
+    [qty]="profit.dialogQty()"
+    [subCrafts]="profit.dialogSubCrafts()"
+    [blockedCrafts]="profit.dialogBlockedCrafts()"
+    [checkedBlocked]="profit.dialogCheckedBlocked()"
+    (closeDialog)="profit.closeDialog()"
+    (confirmAdd)="profit.confirmAdd()"
+    (qtyChange)="profit.dialogQty.set($event)"
+    (toggleBlocked)="profit.toggleBlockedCraft($event)"
   />
 }

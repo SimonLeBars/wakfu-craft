@@ -37,10 +37,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     rename:          (id: number, name: string)                                                                   => ipcRenderer.invoke('sessions:rename', id, name),
     delete:          (id: number)                                                                                 => ipcRenderer.invoke('sessions:delete', id),
     getItems:        (id: number)                                                                                 => ipcRenderer.invoke('sessions:getItems', id),
-    addItem:         (sessionId: number, itemId: number, qty: number, parentId: number | null, recipeId: number | null) => ipcRenderer.invoke('sessions:addItem', sessionId, itemId, qty, parentId, recipeId),
+    getTree:         (id: number)                                                                                 => ipcRenderer.invoke('sessions:getTree', id),
+    addItem:         (sessionId: number, itemId: number, qty: number, recipeId: number | null, subRecipes: Record<number, number>) => ipcRenderer.invoke('sessions:addItem', sessionId, itemId, qty, recipeId, subRecipes),
     removeItem:      (sessionItemId: number)                                                                     => ipcRenderer.invoke('sessions:removeItem', sessionItemId),
     updateQty:       (sessionItemId: number, qty: number)                                                        => ipcRenderer.invoke('sessions:updateQty', sessionItemId, qty),
-    getShoppingList: (sessionId: number)                                                                         => ipcRenderer.invoke('sessions:getShoppingList', sessionId),
-    getCraftOrder:   (sessionId: number)                                                                         => ipcRenderer.invoke('sessions:getCraftOrder', sessionId),
   },
 });

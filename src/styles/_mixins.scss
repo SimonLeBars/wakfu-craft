@@ -158,3 +158,10 @@
   color: #f97316;
   background: color-mix(in srgb, #f97316 10%, transparent);
 }
+
+@mixin optimizer-layout {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--nav-height));
+  overflow: hidden;
+}

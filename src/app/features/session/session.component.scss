@@ -317,6 +317,66 @@
   }
 }
 
+// ── Tooltip sous-crafts ──────────────────────────────────────────────────────
+
+.craft-tooltip {
+  position: fixed;
+  z-index: 1000;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  max-width: 260px;
+  max-height: 60vh;
+  overflow-y: auto;
+
+  &__title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 3px 0;
+    border-top: 1px solid var(--border-light);
+  }
+
+  &__name {
+    font-size: 0.82rem;
+    color: var(--text-label);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+
+  &__qty {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
 // ── Boutons ─────────────────────────────────────────────────────────────────
 
 .btn-icon {
