@@ -77,7 +77,6 @@ export interface SessionItem {
   item_name:       Record<string, string>;
   item_level:      number;
   rarity:          number;
-  parent_item_id:  number | null;
   recipe_id:       number | null;
 }
 
@@ -87,6 +86,27 @@ export interface ShoppingItem {
   item_level:     number;
   rarity:         number;
   total_quantity: number;
+}
+
+export interface BoughtIngredient {
+  item_id:    number;
+  item_name:  Record<string, string>;
+  item_level: number;
+  rarity:     number;
+  quantity:   number;
+}
+
+export interface RecipeTreeNode {
+  session_item_id:    number;
+  item_id:            number;
+  item_name:          Record<string, string>;
+  item_level:         number;
+  rarity:             number;
+  craft_quantity:     number;
+  result_quantity:    number;
+  recipe_id:          number | null;
+  bought_ingredients: BoughtIngredient[];
+  children:           RecipeTreeNode[];
 }
 
 export interface CraftSession {
@@ -154,11 +174,10 @@ export interface ElectronAPI {
     rename:          (id: number, name: string)                                                             => Promise<void>;
     delete:          (id: number)                                                                           => Promise<void>;
     getItems:        (id: number)                                                                           => Promise<SessionItem[]>;
-    addItem:         (sessionId: number, itemId: number, qty: number, parentId: number | null, recipeId: number | null) => Promise<number>;
-    removeItem:      (sessionItemId: number)                                                                => Promise<void>;
-    updateQty:       (sessionItemId: number, qty: number)                                                  => Promise<void>;
-    getShoppingList: (sessionId: number)                                                                    => Promise<ShoppingItem[]>;
-    getCraftOrder:   (sessionId: number)                                                                    => Promise<SessionItem[]>;
+    getTree:         (id: number)                                                                           => Promise<RecipeTreeNode[]>;
+    addItem:    (sessionId: number, itemId: number, qty: number, recipeId: number | null, subRecipes: Record<number, number>) => Promise<number>;
+    removeItem: (sessionItemId: number)               => Promise<void>;
+    updateQty:  (sessionItemId: number, qty: number)  => Promise<void>;
   };
 }
 

@@ -159,40 +159,38 @@ export class XpOptimizerService {
     const profLevels = this.profile.levels();
     const now        = Date.now();
 
-    await this.addItemRecursive(row.item_id, this.dialogQty(), row.ingredients,
-                                recipeMap, prices, profLevels, now, new Set(), null, row.recipe_id,
-                                this.dialogCheckedBlocked());
+    const subRecipes = this.buildSubRecipesMap(
+      row.ingredients, recipeMap, prices, profLevels, now, new Set(), this.dialogCheckedBlocked(),
+    );
+    await this.sessionService.addItem(row.item_id, this.dialogQty(), row.recipe_id, subRecipes);
     await this.sessionService.refreshData();
     this.closeDialog();
   }
 
-  private async addItemRecursive(
-    itemId:        number,
-    qty:           number,
+  private buildSubRecipesMap(
     ingredients:   { item_id: number; quantity: number }[],
     recipeMap:     Map<number, XpRecipe>,
     prices:        Record<number, PriceEntry>,
     profLevels:    Record<number, number>,
     now:           number,
     visited:       Set<number>,
-    parentId:      number | null,
-    recipeId:      number | null = null,
-    forceCraftIds: Set<number>   = new Set(),
-  ): Promise<void> {
-    const sessionItemId = await this.sessionService.addItem(itemId, qty, parentId, recipeId);
-
+    forceCraftIds: Set<number>,
+  ): Record<number, number> {
+    const result: Record<number, number> = {};
     for (const ing of ingredients) {
       const craft = wouldCraft(ing.item_id, recipeMap, prices, profLevels, now, visited)
                  || forceCraftIds.has(ing.item_id);
       if (!craft) continue;
-      const subRecipe   = recipeMap.get(ing.item_id)!;
-      const nextVisited = new Set(visited).add(ing.item_id);
-      await this.addItemRecursive(
-        ing.item_id, ing.quantity * qty, subRecipe.ingredients,
-        recipeMap, prices, profLevels, now, nextVisited, sessionItemId, subRecipe.recipe_id,
-        forceCraftIds,
+      const subRecipe = recipeMap.get(ing.item_id);
+      if (!subRecipe) continue;
+      result[ing.item_id] = subRecipe.recipe_id;
+      const nested = this.buildSubRecipesMap(
+        subRecipe.ingredients, recipeMap, prices, profLevels, now,
+        new Set(visited).add(ing.item_id), forceCraftIds,
       );
+      Object.assign(result, nested);
     }
+    return result;
   }
 
   selectSubRecipe(itemId: number, recipe: XpRecipe): void {
