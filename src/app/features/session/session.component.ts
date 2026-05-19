@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { SessionService } from '@services/session.service';
 import { PriceService } from '@services/price.service';
 import { ProfessionProfileService } from '@services/profession-profile.service';
-import { CraftSession, XpRecipe } from '@electron';
+import { CraftSession, RecipeTreeNode, XpRecipe } from '@electron';
 import { computeEffectiveXp } from '@services/xp-optimizer.utils';
 import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
 import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
@@ -29,6 +29,27 @@ export class SessionComponent implements OnInit {
 
   protected readonly renamingId  = signal<number | null>(null);
   protected readonly renameValue = signal('');
+
+  protected readonly hoveredItemId = signal<number | null>(null);
+  protected readonly tooltipPos   = signal<{ x: number; y: number } | null>(null);
+
+  protected readonly hoveredNode = computed(() =>
+    this.sessionService.sessionItems().find(i => i.session_item_id === this.hoveredItemId()) ?? null
+  );
+
+  protected readonly hoveredSubCrafts = computed(() => {
+    const item = this.hoveredNode();
+    if (!item) return [];
+    const result: { name: string; qty: number; depth: number }[] = [];
+    const visit = (n: RecipeTreeNode, depth: number) => {
+      for (const child of n.children) {
+        result.push({ name: child.item_name['fr'], qty: child.craft_quantity, depth });
+        visit(child, depth + 1);
+      }
+    };
+    visit(item, 0);
+    return result;
+  });
 
   protected readonly totalCost = computed(() =>
     this.sessionService.shoppingList().reduce((sum, item) => {
@@ -117,6 +138,18 @@ export class SessionComponent implements OnInit {
       await this.sessionService.renameSession(id, name);
     }
     this.renamingId.set(null);
+  }
+
+  protected showCraftTooltip(item: RecipeTreeNode, event: Event): void {
+    if (item.children.length === 0) return;
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.hoveredItemId.set(item.session_item_id);
+    this.tooltipPos.set({ x: rect.right + 8, y: rect.top });
+  }
+
+  protected hideCraftTooltip(): void {
+    this.hoveredItemId.set(null);
+    this.tooltipPos.set(null);
   }
 
   onCancelRename(event?: Event): void {
