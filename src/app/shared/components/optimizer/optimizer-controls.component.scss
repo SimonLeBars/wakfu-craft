@@ -1,0 +1,85 @@
+@use 'styles/mixins' as *;
+
+:host {
+  display: block;
+  padding: 16px 24px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.controls-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.control-label {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.control-select {
+  @include input-base(var(--bg-surface));
+  padding: 6px 10px;
+  min-width: 180px;
+  cursor: pointer;
+}
+
+.control-input {
+  @include input-base(var(--bg-surface));
+  width: 80px;
+  padding: 6px 10px;
+  text-align: center;
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button { -webkit-appearance: none; }
+}
+
+.sort-toggle {
+  display: flex;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+
+  button {
+    padding: 6px 14px;
+    background: var(--bg-primary);
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background var(--transition), color var(--transition);
+
+    &:not(:last-child) { border-right: 1px solid var(--border-input); }
+    &:hover { background: var(--bg-surface); color: var(--text); }
+    &.active { background: var(--accent); color: #fff; }
+  }
+}
+
+.btn-refresh {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-input);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.85rem;
+  align-self: flex-end;
+  transition: border-color var(--transition), color var(--transition);
+  &:hover { border-color: var(--accent); color: var(--accent); }
+}
+
+.sort-hint {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  margin: 0;
+}

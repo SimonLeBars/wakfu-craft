@@ -7,5 +7,6 @@ export const routes: Routes = [
   { path: 'session', loadComponent: () => import('./features/session/session.component').then(m => m.SessionComponent) },
   { path: 'ocr',     loadComponent: () => import('./features/ocr/ocr-capture.component').then(m => m.OcrCaptureComponent) },
   { path: 'xp',      loadComponent: () => import('./features/xp-optimizer/xp-optimizer.component').then(m => m.XpOptimizerComponent) },
+  { path: 'profit',  loadComponent: () => import('./features/profit-optimizer/profit-optimizer.component').then(m => m.ProfitOptimizerComponent) },
   { path: 'profile', loadComponent: () => import('./features/profession-profile/profession-profile.component').then(m => m.ProfessionProfileComponent) },
 ];

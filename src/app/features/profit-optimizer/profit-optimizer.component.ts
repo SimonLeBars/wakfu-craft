@@ -2,48 +2,48 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, viewC
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProfessionProfileService } from '@services/profession-profile.service';
-import { XpOptimizerService, SortMode } from '@services/xp-optimizer.service';
-import { fuzzyMatch } from '@services/xp-optimizer.utils';
+import { ProfitOptimizerService, ProfitSortMode } from '@services/profit-optimizer.service';
+import { fuzzyMatch } from '@services/profit-optimizer.utils';
 import { OptimizerControlsComponent, SortOption } from '@shared/components/optimizer/optimizer-controls.component';
 import { OptimizerScanHelperComponent } from '@shared/components/optimizer/optimizer-scan-helper.component';
 import { OptimizerItemNameComponent } from '@shared/components/optimizer/optimizer-item-name.component';
 import { OptimizerSessionDialogComponent } from '@shared/components/optimizer/optimizer-session-dialog.component';
 
 @Component({
-  selector: 'app-xp-optimizer',
-  templateUrl: './xp-optimizer.component.html',
-  styleUrl: './xp-optimizer.component.scss',
+  selector: 'app-profit-optimizer',
+  templateUrl: './profit-optimizer.component.html',
+  styleUrl: './profit-optimizer.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DecimalPipe, FormsModule, OptimizerControlsComponent, OptimizerScanHelperComponent, OptimizerItemNameComponent, OptimizerSessionDialogComponent],
   host: {
     '(document:keydown.control.f)': 'focusSearch($event)',
   },
 })
-export class XpOptimizerComponent {
-  protected readonly xp      = inject(XpOptimizerService);
+export class ProfitOptimizerComponent {
+  protected readonly profit  = inject(ProfitOptimizerService);
   protected readonly profile = inject(ProfessionProfileService);
 
   private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
 
   protected readonly sortOptions: SortOption[] = [
-    { value: 'xp-per-cost',     label: 'XP / Coût' },
-    { value: 'xp-times-profit', label: 'XP × Rentabilité' },
+    { value: 'profit', label: 'Profit brut' },
+    { value: 'roi',    label: 'ROI %' },
   ];
 
   protected readonly sortHint = computed(() =>
-    this.xp.sortMode() === 'xp-per-cost'
-      ? 'Classement : XP effectif par 1 000 kamas dépensés — les recettes les moins chères à leveler arrivent en premier.'
-      : 'Classement : XP effectif × profit (kamas) — les recettes rentables <em>et</em> qui donnent de l\'XP arrivent en premier.'
+    this.profit.sortMode() === 'profit'
+      ? 'Classement : profit brut par craft (kamas gagnés) — les recettes les plus rentables arrivent en premier.'
+      : 'Classement : ROI % (profit / coût ingrédients) — les recettes qui rapportent le plus par kama investi arrivent en premier.'
   );
 
   protected readonly typeNames = computed(() =>
-    new Map(this.xp.itemService.itemTypes().map(t => [t.id, (t.name as Record<string, string>)['fr'] ?? `Type ${t.id}`]))
+    new Map(this.profit.itemService.itemTypes().map(t => [t.id, (t.name as Record<string, string>)['fr'] ?? `Type ${t.id}`]))
   );
 
   protected readonly filteredRows = computed(() => {
-    const q = this.xp.searchQuery().trim();
-    if (!q) return this.xp.rows();
-    return this.xp.rows().filter(r => fuzzyMatch(r.item_name['fr'], q));
+    const q = this.profit.searchQuery().trim();
+    if (!q) return this.profit.rows();
+    return this.profit.rows().filter(r => fuzzyMatch(r.item_name['fr'], q));
   });
 
   constructor() {
@@ -51,35 +51,27 @@ export class XpOptimizerComponent {
   }
 
   protected setSortMode(value: string): void {
-    this.xp.sortMode.set(value as SortMode);
+    this.profit.sortMode.set(value as ProfitSortMode);
   }
 
   protected focusSearch(event: Event): void {
-    if (!this.xp.selectedCatId()) return;
+    if (!this.profit.selectedCatId()) return;
     event.preventDefault();
     this.searchInput()?.nativeElement.focus();
   }
 
-  protected gapClass(gap: number): string {
-    if (gap > 9)    return 'gap--impossible';
-    if (gap > 0)    return 'gap--above';
-    if (gap >= -10) return 'gap--optimal';
-    if (gap > -20)  return 'gap--declining';
-    return 'gap--zero';
-  }
-
-  protected formatXpPerCost(val: number | null): string {
-    if (val == null) return '—';
-    return val >= 1 ? val.toFixed(2) : val.toFixed(4);
-  }
-
-  protected formatXpTimesProfit(val: number | null): string {
+  protected formatProfit(val: number | null): string {
     if (val == null) return '—';
     const abs = Math.abs(val);
     return abs >= 1_000_000
-      ? (val / 1_000_000).toFixed(1) + ' M'
+      ? (val / 1_000_000).toFixed(1) + ' M k'
       : abs >= 1_000
-        ? (val / 1_000).toFixed(1) + ' K'
-        : val.toFixed(0);
+        ? (val / 1_000).toFixed(1) + ' K k'
+        : val.toFixed(0) + ' k';
+  }
+
+  protected formatRoi(val: number | null): string {
+    if (val == null) return '—';
+    return val.toFixed(1) + ' %';
   }
 }
