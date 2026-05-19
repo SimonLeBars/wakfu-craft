@@ -29,7 +29,7 @@
           max="230"
           class="control-input"
           [ngModel]="xp.playerLevel()"
-          (ngModelChange)="xp.playerLevel.set(+$event || 1)"
+          (ngModelChange)="xp.onLevelChange(+$event || 1)"
           aria-label="Niveau actuel du métier"
         />
       </div>
@@ -141,6 +141,25 @@
   } @else if (xp.rows().length === 0) {
     <div class="empty-state">Aucune recette trouvée — pense à synchroniser les données.</div>
   } @else {
+    <div class="search-bar" role="search">
+      <input
+        #searchInput
+        type="search"
+        class="search-input"
+        placeholder="Rechercher un item… (Ctrl+F)"
+        [ngModel]="xp.searchQuery()"
+        (ngModelChange)="xp.searchQuery.set($event)"
+        (keydown.escape)="xp.searchQuery.set('')"
+        aria-label="Rechercher un item par nom"
+      />
+      @if (xp.searchQuery()) {
+        <button class="search-clear" (click)="xp.searchQuery.set('')" aria-label="Effacer la recherche">×</button>
+      }
+    </div>
+
+    @if (filteredRows().length === 0) {
+      <div class="empty-state">Aucun résultat pour « {{ xp.searchQuery() }} »</div>
+    } @else {
     <div class="table-wrapper" role="region" aria-label="Recettes classées">
       <table class="recipes-table">
         <thead>
@@ -160,7 +179,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (row of xp.rows(); track row.recipe_id) {
+          @for (row of filteredRows(); track row.recipe_id) {
             <tr>
               <td class="col-name">
                 @if (row.hasMissingPrices) {
@@ -219,6 +238,7 @@
         </tbody>
       </table>
     </div>
+    }
   }
 
 </div>

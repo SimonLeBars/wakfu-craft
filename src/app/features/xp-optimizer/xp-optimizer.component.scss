@@ -176,6 +176,45 @@ details[open] > .scan-summary::before { transform: rotate(90deg); }
   white-space: nowrap;
 }
 
+// ── Barre de recherche ────────────────────────────────────────────────────────
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.search-input {
+  @include input-base(var(--bg-surface));
+  flex: 1;
+  max-width: 360px;
+  padding: 6px 10px;
+
+  &::-webkit-search-cancel-button { display: none; }
+}
+
+.search-clear {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-surface);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition), background var(--transition);
+
+  &:hover { color: var(--text); background: var(--border); }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+}
+
 // ── États vides ───────────────────────────────────────────────────────────────
 
 .empty-state,

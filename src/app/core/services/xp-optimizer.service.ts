@@ -25,6 +25,8 @@ export class XpOptimizerService {
   readonly prices              = signal<Record<number, PriceEntry>>({});
   readonly isLoading           = signal(false);
 
+  readonly searchQuery          = signal('');
+
   readonly dialogRow            = signal<XpRow | null>(null);
   readonly dialogQty            = signal<number>(1);
   readonly dialogCheckedBlocked = signal<Set<number>>(new Set());
@@ -73,8 +75,22 @@ export class XpOptimizerService {
       });
   });
 
+  async onLevelChange(level: number): Promise<void> {
+    this.playerLevel.set(level);
+    const id = this.selectedCatId();
+    if (!id) return;
+
+    this.isLoading.set(true);
+    try {
+      await this.loadCategoryRecipes(id, level);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
   async onCategoryChange(id: number | null): Promise<void> {
     this.selectedCatId.set(id);
+    this.searchQuery.set('');
     this.recipes.set([]);
     this.subRecipeMap.set(new Map());
     this.availableSubRecipes.set(new Map());

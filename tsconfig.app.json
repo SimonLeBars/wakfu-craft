@@ -4,16 +4,17 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/app",
-    "rootDir": "./src",
     "types": [],
     "paths": {
       "@electron": ["./src/electron.d.ts"],
       "@services/*": ["./src/app/core/services/*"],
-      "@shared/*": ["./src/app/shared/*"]
+      "@shared/*": ["./src/app/shared/*"],
+      "@common/*": ["./electron/shared/*"]
     }
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "electron/shared/**/*.ts"
   ],
   "exclude": [
     "src/**/*.spec.ts"

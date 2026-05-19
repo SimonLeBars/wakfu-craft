@@ -3,6 +3,7 @@ import * as path from 'path';
 import { app } from 'electron';
 import { WakfuItem, Recipe, RecipeIngredient, PriceEntry, CraftSession, SessionItem, ShoppingItem } from '../../src/electron';
 import { MIGRATIONS } from './migrations';
+import { fuzzyMatch } from '../shared/fuzzy-match';
 
 // ── Types internes pour les données brutes de l'API Wakfu CDN ────────────────
 
@@ -79,51 +80,13 @@ export class DatabaseService {
 
   private registerFunctions(): void {
     this.db.function('fuzzy_match', (nameJson: string, query: string, lang: string): number => {
-      let nameStr: string;
       try {
-        const nameObj = JSON.parse(nameJson) as Record<string, string>;
-        nameStr = this.normalize(nameObj[lang] ?? '');
+        const name = (JSON.parse(nameJson) as Record<string, string>)[lang] ?? '';
+        return fuzzyMatch(name, query) ? 1 : 0;
       } catch {
         return 0;
       }
-      const nameClean = nameStr.replace(/[^a-z0-9]/g, '');
-      const queryClean = this.normalize(query).replace(/[^a-z0-9]/g, '');
-      return this.fuzzySubstring(queryClean, nameClean) ? 1 : 0;
     });
-  }
-
-  private normalize(s: string): string {
-    return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  }
-
-  private fuzzySubstring(needle: string, haystack: string): boolean {
-    if (haystack.includes(needle)) return true;
-    const threshold = needle.length <= 3 ? 0 : needle.length <= 6 ? 1 : 2;
-    for (let i = 0; i < haystack.length; i++) {
-      const maxLen = Math.min(haystack.length - i, needle.length + threshold);
-      for (let len = Math.max(1, needle.length - threshold); len <= maxLen; len++) {
-        if (this.levenshtein(needle, haystack.slice(i, i + len)) <= threshold) return true;
-      }
-    }
-    return false;
-  }
-
-  private levenshtein(a: string, b: string): number {
-    const m = a.length, n = b.length;
-    if (m === 0) return n;
-    if (n === 0) return m;
-    let prev = Array.from({ length: n + 1 }, (_, j) => j);
-    for (let i = 1; i <= m; i++) {
-      const curr: number[] = [i];
-      for (let j = 1; j <= n; j++) {
-        curr[j] =
-          a[i - 1] === b[j - 1]
-            ? prev[j - 1]
-            : 1 + Math.min(prev[j], curr[j - 1], prev[j - 1]);
-      }
-      prev = curr;
-    }
-    return prev[n];
   }
 
   private runMigrations(): void {

@@ -1,4 +1,5 @@
 import { PriceEntry, XpIngredient, XpRecipe } from '@electron';
+export { fuzzyMatch } from '@common/fuzzy-match';
 
 export type SortMode = 'xp-per-cost' | 'xp-times-profit';
 

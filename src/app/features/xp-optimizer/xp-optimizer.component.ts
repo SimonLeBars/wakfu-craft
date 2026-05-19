@@ -1,11 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, viewChild } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProfessionProfileService } from '@services/profession-profile.service';
 import { XpOptimizerService } from '@services/xp-optimizer.service';
 import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
 import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
-import { BlockedCraft, ScanItem } from '@services/xp-optimizer.utils';
+import { BlockedCraft, fuzzyMatch, ScanItem } from '@services/xp-optimizer.utils';
 
 @Component({
   selector: 'app-xp-optimizer',
@@ -13,17 +13,34 @@ import { BlockedCraft, ScanItem } from '@services/xp-optimizer.utils';
   styleUrl: './xp-optimizer.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, DecimalPipe, RarityColorPipe, RarityLabelPipe],
+  host: {
+    '(document:keydown.control.f)': 'focusSearch($event)',
+  },
 })
 export class XpOptimizerComponent {
   protected readonly xp      = inject(XpOptimizerService);
   protected readonly profile = inject(ProfessionProfileService);
 
+  private   readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
+
   protected readonly typeNameMap = computed(() =>
     new Map(this.xp.itemService.itemTypes().map(t => [t.id, t.name]))
   );
 
+  protected readonly filteredRows = computed(() => {
+    const q = this.xp.searchQuery().trim();
+    if (!q) return this.xp.rows();
+    return this.xp.rows().filter(r => fuzzyMatch(r.item_name['fr'], q));
+  });
+
   constructor() {
     this.profile.load();
+  }
+
+  protected focusSearch(event: Event): void {
+    if (!this.xp.selectedCatId()) return;
+    event.preventDefault();
+    this.searchInput()?.nativeElement.focus();
   }
 
   protected typeName(typeId: number): string {
