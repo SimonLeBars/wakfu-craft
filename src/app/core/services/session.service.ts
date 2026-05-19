@@ -25,12 +25,44 @@ export class SessionService {
   });
 
   readonly craftOrder = computed<RecipeTreeNode[]>(() => {
-    const result: RecipeTreeNode[] = [];
-    const visit = (node: RecipeTreeNode) => {
-      for (const child of node.children) visit(child);
-      result.push(node);
+    // 1. Collect all crafted nodes grouped by item_id, merging qty and deps
+    const steps = new Map<number, { node: RecipeTreeNode; qty: number; deps: Set<number> }>();
+    const collect = (node: RecipeTreeNode) => {
+      for (const child of node.children) collect(child);
+      const childIds = new Set(node.children.map(c => c.item_id));
+      const existing = steps.get(node.item_id);
+      if (existing) {
+        existing.qty += node.craft_quantity;
+        for (const id of childIds) existing.deps.add(id);
+      } else {
+        steps.set(node.item_id, { node: { ...node }, qty: node.craft_quantity, deps: childIds });
+      }
     };
-    for (const root of this.sessionItems()) visit(root);
+    for (const root of this.sessionItems()) collect(root);
+
+    // 2. Build in-degree map and reverse adjacency (dep → items that need it)
+    const inDegree   = new Map<number, number>([...steps.keys()].map(id => [id, 0]));
+    const dependents = new Map<number, number[]>([...steps.keys()].map(id => [id, []]));
+    for (const [itemId, { deps }] of steps) {
+      for (const depId of deps) {
+        inDegree.set(itemId, inDegree.get(itemId)! + 1);
+        dependents.get(depId)!.push(itemId);
+      }
+    }
+
+    // 3. Kahn's topological sort — leaves (no deps) first, roots last
+    const queue  = [...steps.keys()].filter(id => inDegree.get(id) === 0);
+    const result: RecipeTreeNode[] = [];
+    while (queue.length > 0) {
+      const id   = queue.shift()!;
+      const step = steps.get(id)!;
+      result.push({ ...step.node, craft_quantity: step.qty });
+      for (const dependent of dependents.get(id)!) {
+        const deg = inDegree.get(dependent)! - 1;
+        inDegree.set(dependent, deg);
+        if (deg === 0) queue.push(dependent);
+      }
+    }
     return result;
   });
 
