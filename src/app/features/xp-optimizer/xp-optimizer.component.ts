@@ -27,13 +27,13 @@ export class XpOptimizerComponent {
 
   protected readonly sortOptions: SortOption[] = [
     { value: 'xp-per-cost',     label: 'XP / Coût' },
-    { value: 'xp-times-profit', label: 'XP × Rentabilité' },
+    { value: 'xp-times-roi', label: 'XP × ROI' },
   ];
 
   protected readonly sortHint = computed(() =>
     this.xp.sortMode() === 'xp-per-cost'
       ? 'Classement : XP effectif par 1 000 kamas dépensés — les recettes les moins chères à leveler arrivent en premier.'
-      : 'Classement : XP effectif × profit (kamas) — les recettes rentables <em>et</em> qui donnent de l\'XP arrivent en premier.'
+      : 'Classement : XP effectif × ROI % — les recettes qui offrent le meilleur retour sur investissement <em>et</em> de l\'XP arrivent en premier.'
   );
 
   protected readonly typeNames = computed(() =>
@@ -73,7 +73,7 @@ export class XpOptimizerComponent {
     return val >= 1 ? val.toFixed(2) : val.toFixed(4);
   }
 
-  protected formatXpTimesProfit(val: number | null): string {
+  protected formatXpTimesRoi(val: number | null): string {
     if (val == null) return '—';
     const abs = Math.abs(val);
     return abs >= 1_000_000

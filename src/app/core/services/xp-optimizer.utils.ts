@@ -1,7 +1,7 @@
 import { PriceEntry, XpIngredient, XpRecipe } from '@electron';
 export { fuzzyMatch } from '@common/fuzzy-match';
 
-export type SortMode = 'xp-per-cost' | 'xp-times-profit';
+export type SortMode = 'xp-per-cost' | 'xp-times-roi';
 
 export const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -19,8 +19,9 @@ export interface XpRow extends XpRecipe {
   ingredientCost:   number | null;
   sellRevenue:      number | null;
   profit:           number | null;
+  roi:              number | null;
   xpPerCost:        number | null;
-  xpTimesProfit:    number | null;
+  xpTimesRoi:       number | null;
   score:            number | null;
   hasMissingPrices: boolean;
   hasStalePrices:   boolean;
@@ -307,10 +308,12 @@ export function buildXpRow(
   const profit         = ingredientCost !== null && sellRevenue !== null ? sellRevenue - ingredientCost : null;
   const xpPerCost      = effectiveXp > 0 && ingredientCost !== null && ingredientCost > 0
     ? effectiveXp / ingredientCost * 1000 : null;
-  const xpTimesProfit  = effectiveXp > 0 && profit !== null ? effectiveXp * profit : null;
-  const score            = sortMode === 'xp-per-cost' ? xpPerCost : xpTimesProfit;
+  const roi            = ingredientCost !== null && ingredientCost > 0 && profit !== null
+    ? profit / ingredientCost * 100 : null;
+  const xpTimesRoi     = effectiveXp > 0 && roi !== null ? effectiveXp * roi : null;
+  const score          = sortMode === 'xp-per-cost' ? xpPerCost : xpTimesRoi;
   const blockedSubCrafts = collectBlockedCrafts(r.ingredients, recipeMap, prices, profLevels, now, new Set());
 
   return { ...r, gap, successRate, xpMultiplier, effectiveXp, ingredientCost, sellRevenue,
-           profit, xpPerCost, xpTimesProfit, score, hasMissingPrices, hasStalePrices, blockedSubCrafts };
+           profit, roi, xpPerCost, xpTimesRoi, score, hasMissingPrices, hasStalePrices, blockedSubCrafts };
 }

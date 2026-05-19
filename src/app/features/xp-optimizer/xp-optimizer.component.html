@@ -55,8 +55,9 @@
               <th scope="col" class="col-cost">Coût ingr.</th>
               <th scope="col" class="col-revenue">Revenu</th>
               <th scope="col" class="col-profit">Profit</th>
+              <th scope="col" class="col-roi">ROI</th>
               <th scope="col" class="col-score">
-                {{ xp.sortMode() === 'xp-per-cost' ? 'XP/1000k' : 'XP×Profit' }}
+                {{ xp.sortMode() === 'xp-per-cost' ? 'XP/1000k' : 'XP×ROI' }}
               </th>
               <th scope="col" class="col-actions"></th>
             </tr>
@@ -85,11 +86,14 @@
                 <td class="col-profit" [class.val--positive]="row.profit !== null && row.profit > 0" [class.val--negative]="row.profit !== null && row.profit < 0">
                   {{ row.profit !== null ? ((row.profit | number:'1.0-0') + ' k') : '—' }}
                 </td>
+                <td class="col-roi" [class.val--positive]="row.roi !== null && row.roi > 0" [class.val--negative]="row.roi !== null && row.roi < 0">
+                  {{ row.roi !== null ? (row.roi | number:'1.0-1') + ' %' : '—' }}
+                </td>
                 <td class="col-score">
                   @if (xp.sortMode() === 'xp-per-cost') {
                     {{ formatXpPerCost(row.xpPerCost) }}
                   } @else {
-                    {{ formatXpTimesProfit(row.xpTimesProfit) }}
+                    {{ formatXpTimesRoi(row.xpTimesRoi) }}
                   }
                 </td>
                 <td class="col-actions">
