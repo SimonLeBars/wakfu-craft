@@ -83,7 +83,7 @@
       </summary>
 
       <div class="scan-body">
-        @for (group of xp.scanGroups(); track group.type_id) {
+        @for (group of xp.scanGroups(); track group.type_id + '-' + group.bracket_min) {
           <div class="scan-group">
             <div class="scan-group__header">
               <span class="scan-group__type">{{ typeName(group.type_id) }}</span>
