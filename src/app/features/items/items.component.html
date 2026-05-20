@@ -154,8 +154,7 @@
       </div>
     } @else {
       <div class="recipe-header">
-        <h2>{{ itemService.selectedItem()!.name['fr'] }}</h2>
-        <app-copy-btn [text]="itemService.selectedItem()!.name['fr']" />
+        <h2><app-copy-btn [text]="itemService.selectedItem()!.name['fr']" /></h2>
         <span class="level-badge">Niveau {{ itemService.selectedItem()!.level }}</span>
         <span class="badge-rarity" [style.color]="itemService.selectedItem()!.rarity | rarityColor">{{ itemService.selectedItem()!.rarity | rarityLabel }}</span>
         @if (itemService.selectedRecipe()) {

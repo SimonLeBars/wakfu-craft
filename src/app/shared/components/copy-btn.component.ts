@@ -2,34 +2,41 @@ import { Component, input, signal, ChangeDetectionStrategy } from '@angular/core
 
 @Component({
   selector: 'app-copy-btn',
+  host: { style: 'display: contents' },
   template: `
     <button
       class="copy-btn"
       [class.copy-btn--copied]="copied()"
       (click)="copy($event)"
       [attr.aria-label]="'Copier ' + text()"
-      title="Copier le nom"
+      title="Copier"
       type="button">
-      {{ copied() ? '✓' : '⎘' }}
+      {{ text() }}<span class="copy-btn__icon" aria-hidden="true">{{ copied() ? ' ✓' : ' ⎘' }}</span>
     </button>
   `,
   styles: [`
+    :host { display: contents; }
     .copy-btn {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      padding: 0 5px;
+      padding: 0 4px;
       border: none;
       background: transparent;
-      color: var(--text-dim);
+      color: inherit;
       cursor: pointer;
-      font-size: 0.85rem;
-      line-height: 1;
+      font: inherit;
+      line-height: inherit;
       border-radius: var(--radius-sm);
-      transition: color var(--transition), background var(--transition);
+      transition: background var(--transition);
       flex-shrink: 0;
-      &:hover { color: var(--accent); background: rgba(var(--accent-rgb, 99,102,241), 0.1); }
-      &--copied { color: var(--success) !important; }
+      &:hover { background: rgba(var(--accent-rgb, 99,102,241), 0.1); }
+      &--copied .copy-btn__icon { color: var(--success) !important; }
+    }
+    .copy-btn__icon {
+      color: var(--text-dim);
+      font-size: 0.85em;
+      flex-shrink: 0;
+      transition: color var(--transition);
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
