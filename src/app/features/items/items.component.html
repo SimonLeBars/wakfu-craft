@@ -231,7 +231,7 @@
         }
         <div class="recipe-meta">
           <span>📊 Niveau de recette : {{ itemService.selectedRecipe()!.level }}</span>
-          <span>⭐ XP : {{ itemService.selectedRecipe()!.xp_ratio }}</span>
+          <span>⭐ XP : {{ itemService.selectedRecipe()!.xp_ratio }} <span class="xp-effective">({{ xpInfo()!.xp | number:'1.0-1' }} xp avec le niveau actuel · {{ xpInfo()!.rate | percent:'1.0-0' }} de chance de craft)</span></span>
           @if (itemService.selectedRecipe()!.result_quantity > 1) {
             <span class="badge-qty">× {{ itemService.selectedRecipe()!.result_quantity }} produits</span>
           }

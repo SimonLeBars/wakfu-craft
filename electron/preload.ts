@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getRecipeCategories:    ()                      => ipcRenderer.invoke('xp:getCategories'),
   getProfessionLevels:    ()                                              => ipcRenderer.invoke('profession:getLevels'),
   setProfessionLevels:    (levels: Record<number, number>)                => ipcRenderer.invoke('profession:setLevels', levels),
+  getGuildXpBonus:        ()                                              => ipcRenderer.invoke('profession:getGuildXpBonus'),
+  setGuildXpBonus:        (bonus: number)                                 => ipcRenderer.invoke('profession:setGuildXpBonus', bonus),
   getRecipesByCategoryAndLevel:   (categoryId: number, minLevel: number, maxLevel: number)    => ipcRenderer.invoke('xp:getRecipesByCategoryAndLevel', categoryId, minLevel, maxLevel),
   getRecipesByItemIds:    (itemIds: number[])     => ipcRenderer.invoke('xp:getRecipesByItemIds', itemIds),
   searchItems:       (query: string, lang?: string, typeIds?: number[], minLevel?: number, maxLevel?: number, rarities?: number[]) => ipcRenderer.invoke('items:search', query, lang, typeIds, minLevel, maxLevel, rarities),

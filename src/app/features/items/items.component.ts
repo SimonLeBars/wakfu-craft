@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
-import { DecimalPipe, DatePipe } from '@angular/common';
+import { DecimalPipe, DatePipe, PercentPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ItemService } from '@services/item.service';
 import { PriceService } from '@services/price.service';
@@ -12,6 +12,7 @@ import { IngredientRowComponent } from './ingredient-row/ingredient-row.componen
 import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
 import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
 import { CopyBtnComponent } from '@shared/components/copy-btn.component';
+import { craftSuccessRate, craftCurrentXp } from '@services/xp-optimizer.utils';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -65,7 +66,7 @@ function collectCraftSubItems(
 
 @Component({
   selector: 'app-items',
-  imports: [DecimalPipe, DatePipe, FormsModule, ProfitabilityComponent, PriceHistoryComponent, IngredientRowComponent, RarityColorPipe, RarityLabelPipe, CopyBtnComponent],
+  imports: [DecimalPipe, DatePipe, PercentPipe, FormsModule, ProfitabilityComponent, PriceHistoryComponent, IngredientRowComponent, RarityColorPipe, RarityLabelPipe, CopyBtnComponent],
   templateUrl: './items.component.html',
   styleUrl: './items.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -192,6 +193,15 @@ export class ItemsComponent {
   onCancelDialog(): void {
     this.addDialogVisible.set(false);
   }
+
+  protected readonly xpInfo = computed(() => {
+    const recipe = this.itemService.selectedRecipe();
+    if (!recipe) return null;
+    const gap  = recipe.level - (this.profile.levels()[recipe.category_id] ?? 0);
+    const xp   = craftCurrentXp(recipe.xp_ratio, gap, this.profile.guildXpBonus());
+    const rate = craftSuccessRate(gap);
+    return { xp, rate };
+  });
 
   protected hasEnoughLevel(recipe: Recipe): boolean {
     return (this.profile.levels()[recipe.category_id] ?? 0) >= recipe.level;

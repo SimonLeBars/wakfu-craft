@@ -78,13 +78,14 @@ export class SessionComponent implements OnInit {
   }));
 
   protected readonly totalExpectedXp = computed(() => {
-    const recipeMap = new Map(this.xpRecipes().map(r => [r.item_id, r]));
-    const levels    = this.profile.levels();
+    const recipeMap    = new Map(this.xpRecipes().map(r => [r.item_id, r]));
+    const levels       = this.profile.levels();
+    const guildXpBonus = this.profile.guildXpBonus();
     return this.sessionService.sessionItems().reduce((sum, item) => {
       const recipe = recipeMap.get(item.item_id);
       if (!recipe) return sum;
       const gap = recipe.recipe_level - (levels[recipe.category_id] ?? 1);
-      return sum + computeEffectiveXp(recipe.xp_ratio, gap) * item.craft_quantity;
+      return sum + computeEffectiveXp(recipe.xp_ratio, gap, guildXpBonus) * item.craft_quantity;
     }, 0);
   });
 

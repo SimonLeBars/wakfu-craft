@@ -154,6 +154,8 @@ export interface ElectronAPI {
   getRecipeCategories:  () => Promise<RecipeCategory[]>;
   getProfessionLevels:  () => Promise<Record<number, number>>;
   setProfessionLevels:  (levels: Record<number, number>) => Promise<void>;
+  getGuildXpBonus:      () => Promise<number>;
+  setGuildXpBonus:      (bonus: number) => Promise<void>;
   getRecipesByCategoryAndLevel: (categoryId: number, minLevel: number, maxLevel: number) => Promise<XpRecipe[]>;
   getRecipesByItemIds:  (itemIds: number[])  => Promise<XpRecipe[]>;
   searchItems:       (query: string, lang?: string, typeIds?: number[], minLevel?: number, maxLevel?: number, rarities?: number[]) => Promise<WakfuItem[]>;

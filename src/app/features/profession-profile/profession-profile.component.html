@@ -6,6 +6,26 @@
 
   <div class="profile-content">
 
+    <section class="prof-section guild-bonus-section">
+      <h3 class="section-title">Bonus de guilde</h3>
+      <div class="guild-bonus-row">
+        <label for="guild-xp-bonus">Bonus XP de craft</label>
+        <div class="prof-level-row">
+          <input
+            id="guild-xp-bonus"
+            type="number"
+            min="0"
+            max="100"
+            class="level-input"
+            [value]="profile.guildXpBonus()"
+            (change)="onGuildBonusChange($any($event.target).value)"
+            aria-label="Bonus XP de craft de la guilde"
+          />
+          <span class="level-max">%</span>
+        </div>
+      </div>
+    </section>
+
     @if (craftCategories().length > 0) {
       <section class="prof-section">
         <h3 class="section-title">Métiers de craft</h3>

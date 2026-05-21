@@ -139,6 +139,14 @@ export class DatabaseService {
     this.setSetting('profession_levels', JSON.stringify(levels));
   }
 
+  getGuildXpBonus(): number {
+    return Number(this.getSetting('guild_xp_bonus') ?? '0');
+  }
+
+  setGuildXpBonus(bonus: number): void {
+    this.setSetting('guild_xp_bonus', String(bonus));
+  }
+
   // #region Imports on Sync
   importData(file: string, data: unknown[]): number {
     this.db.pragma('foreign_keys = OFF');

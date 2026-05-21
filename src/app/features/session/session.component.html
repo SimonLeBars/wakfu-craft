@@ -193,7 +193,7 @@
             <div class="breakdown__row breakdown__row--total">
               <span class="breakdown__label">XP prévu</span>
               <span class="breakdown__value" [class.missing]="totalExpectedXp() === 0">
-                {{ totalExpectedXp() > 0 ? formatXp(totalExpectedXp()) : 'Niveaux métier manquants' }}
+                {{ totalExpectedXp() > 0 ? (totalExpectedXp() | number:'1.0-0') : 'Niveaux métier manquants' }}
               </span>
             </div>
           </div>

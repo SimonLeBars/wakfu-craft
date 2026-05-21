@@ -14,7 +14,6 @@ export interface CostResult {
 export interface XpRow extends XpRecipe {
   gap:              number;
   successRate:      number;
-  xpMultiplier:     number;
   effectiveXp:      number;
   ingredientCost:   number | null;
   sellRevenue:      number | null;
@@ -166,17 +165,30 @@ export function collectBlockedCrafts(
   return result;
 }
 
-function xpFactors(gap: number): { successRate: number; xpMultiplier: number } {
-  if (gap > 0) {
-    return { successRate: Math.max(0.1, (10 - gap) / 10), xpMultiplier: 1 + gap * 0.1 };
-  }
-  const below = -gap;
-  return { successRate: 1, xpMultiplier: below <= 10 ? 1 : below < 20 ? (20 - below) / 10 : 0 };
+export function craftSuccessRate(gap: number): number {
+  return gap <= 0 ? 1 : Math.max(0, 1 - gap / 10);
 }
 
-export function computeEffectiveXp(xpRatio: number, gap: number): number {
-  const { successRate, xpMultiplier } = xpFactors(gap);
-  return xpRatio * xpMultiplier * successRate;
+function craftXpMultiplier(gap: number): number {
+  if (gap < -19 || gap > 9) {
+    return 0;
+  } else if (gap <= -11) {
+    return (1 / 3) * (1 - Math.cos(Math.PI * (gap + 20) / 10));
+  } else if (gap <= 0) {
+    return 2 / 3;
+  } else {
+    return (1 / 15) * gap + (2 / 3);
+  }
+}
+
+export function craftCurrentXp(xpRatio: number, gap: number, guildBonusPercent = 0): number {
+  return Math.round(Math.round(xpRatio * craftXpMultiplier(gap)) * (1 + guildBonusPercent / 100));
+}
+
+export function computeEffectiveXp(xpRatio: number, gap: number, guildBonusPercent = 0): number {
+  const successRate  = craftSuccessRate(gap);
+  const currentXp = craftCurrentXp(xpRatio, gap, guildBonusPercent);
+  return currentXp * successRate;
 }
 
 export interface ScanItem {
@@ -285,17 +297,18 @@ export function buildScanGroups(
 }
 
 export function buildXpRow(
-  r:           XpRecipe,
-  playerLevel: number,
-  sortMode:    SortMode,
-  recipeMap:   Map<number, XpRecipe>,
-  prices:      Record<number, PriceEntry>,
-  profLevels:  Record<number, number>,
-  now:         number,
+  r:                XpRecipe,
+  playerLevel:      number,
+  sortMode:         SortMode,
+  recipeMap:        Map<number, XpRecipe>,
+  prices:           Record<number, PriceEntry>,
+  profLevels:       Record<number, number>,
+  now:              number,
+  guildBonusPercent = 0,
 ): XpRow {
-  const gap                        = r.recipe_level - playerLevel;
-  const { successRate, xpMultiplier } = xpFactors(gap);
-  const effectiveXp                = r.xp_ratio * xpMultiplier * successRate;
+  const gap          = r.recipe_level - playerLevel;
+  const successRate  = craftSuccessRate(gap);
+  const effectiveXp  = computeEffectiveXp(r.xp_ratio, gap, guildBonusPercent);
 
   const { cost: ingredientCost, missing: hasMissingPrices, stale: ingStale } =
     resolveIngredientsCost(r.ingredients, recipeMap, prices, profLevels, now);
@@ -314,6 +327,6 @@ export function buildXpRow(
   const score          = sortMode === 'xp-per-cost' ? xpPerCost : xpTimesRoi;
   const blockedSubCrafts = collectBlockedCrafts(r.ingredients, recipeMap, prices, profLevels, now, new Set());
 
-  return { ...r, gap, successRate, xpMultiplier, effectiveXp, ingredientCost, sellRevenue,
+  return { ...r, gap, successRate, effectiveXp, ingredientCost, sellRevenue,
            profit, roi, xpPerCost, xpTimesRoi, score, hasMissingPrices, hasStalePrices, blockedSubCrafts };
 }

@@ -24,6 +24,11 @@ export class ProfessionProfileComponent {
     this.profile.setLevel(categoryId, level);
   }
 
+  protected onGuildBonusChange(value: string): void {
+    const bonus = Math.min(100, Math.max(0, parseInt(value, 10) || 0));
+    this.profile.setGuildXpBonus(bonus);
+  }
+
   protected levelOf(categoryId: number): number {
     return this.profile.getLevel(categoryId);
   }

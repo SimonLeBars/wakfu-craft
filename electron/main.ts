@@ -145,6 +145,8 @@ function registerIpcHandlers(db: DatabaseService): void {
   ipcMain.handle('xp:getCategories', () => db.getRecipeCategories());
   ipcMain.handle('profession:getLevels', () => db.getProfessionLevels());
   ipcMain.handle('profession:setLevels', (_e, levels: Record<number, number>) => db.setProfessionLevels(levels));
+  ipcMain.handle('profession:getGuildXpBonus', () => db.getGuildXpBonus());
+  ipcMain.handle('profession:setGuildXpBonus', (_e, bonus: number) => db.setGuildXpBonus(bonus));
   ipcMain.handle('xp:getRecipesByCategoryAndLevel', (_e, categoryId: number, minLevel: number, maxLevel:number) => db.getRecipesByCategoryAndLevel(categoryId, minLevel, maxLevel));
   ipcMain.handle('xp:getRecipesByItemIds',  (_e, itemIds: number[])  => db.getRecipesByItemIds(itemIds));
 

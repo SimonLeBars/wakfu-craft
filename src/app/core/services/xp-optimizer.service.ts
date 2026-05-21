@@ -12,15 +12,16 @@ export class XpOptimizerService extends BaseOptimizerService<XpRow> {
   readonly sortMode = signal<SortMode>('xp-per-cost');
 
   readonly rows = computed((): XpRow[] => {
-    const prices      = this.prices();
-    const playerLevel = this.playerLevel();
-    const sortMode    = this.sortMode();
-    const recipeMap   = this.subRecipeMap();
-    const profLevels  = this.profile.levels();
-    const now         = Date.now();
+    const prices          = this.prices();
+    const playerLevel     = this.playerLevel();
+    const sortMode        = this.sortMode();
+    const recipeMap       = this.subRecipeMap();
+    const profLevels      = this.profile.levels();
+    const guildXpBonus    = this.profile.guildXpBonus();
+    const now             = Date.now();
 
     return this.recipes()
-      .map(r => buildXpRow(r, playerLevel, sortMode, recipeMap, prices, profLevels, now))
+      .map(r => buildXpRow(r, playerLevel, sortMode, recipeMap, prices, profLevels, now, guildXpBonus))
       .filter(r => r.effectiveXp > 0)
       .sort((a, b) => {
         if (a.score == null && b.score == null) return a.recipe_level - b.recipe_level;
