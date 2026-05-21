@@ -81,12 +81,14 @@ export class SessionComponent implements OnInit {
     const recipeMap    = new Map(this.xpRecipes().map(r => [r.item_id, r]));
     const levels       = this.profile.levels();
     const guildXpBonus = this.profile.guildXpBonus();
-    return this.sessionService.sessionItems().reduce((sum, item) => {
-      const recipe = recipeMap.get(item.item_id);
-      if (!recipe) return sum;
-      const gap = recipe.recipe_level - (levels[recipe.category_id] ?? 1);
-      return sum + computeEffectiveXp(recipe.xp_ratio, gap, guildXpBonus) * item.craft_quantity;
-    }, 0);
+    const xpForNode    = (node: RecipeTreeNode): number => {
+      const recipe = recipeMap.get(node.item_id);
+      const own    = recipe
+        ? computeEffectiveXp(recipe.xp_ratio, recipe.recipe_level - (levels[recipe.category_id] ?? 1), guildXpBonus) * node.craft_quantity
+        : 0;
+      return own + node.children.reduce((s, c) => s + xpForNode(c), 0);
+    };
+    return this.sessionService.sessionItems().reduce((sum, root) => sum + xpForNode(root), 0);
   });
 
   async ngOnInit(): Promise<void> {
@@ -159,10 +161,11 @@ export class SessionComponent implements OnInit {
   }
 
   private async loadXpRecipes(): Promise<void> {
-    const itemIds = this.sessionService.sessionItems().map(i => i.item_id);
-    if (itemIds.length === 0) { this.xpRecipes.set([]); return; }
-    const recipes = await window.electronAPI.getRecipesByItemIds(itemIds);
-    this.xpRecipes.set(recipes);
+    const ids = new Set<number>();
+    const collect = (node: RecipeTreeNode) => { ids.add(node.item_id); node.children.forEach(collect); };
+    this.sessionService.sessionItems().forEach(collect);
+    if (ids.size === 0) { this.xpRecipes.set([]); return; }
+    this.xpRecipes.set(await window.electronAPI.getRecipesByItemIds([...ids]));
   }
 
   private async loadPrices(): Promise<void> {
