@@ -10,7 +10,10 @@
   background: $bg;
   color: var(--text);
   font-size: 0.9rem;
-  &:focus { outline: none; border-color: var(--accent); }
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
 }
 
 @mixin btn-icon {
@@ -23,7 +26,9 @@
   align-items: center;
   justify-content: center;
   transition: border-color var(--transition);
-  &:hover { border-color: var(--accent); }
+  &:hover {
+    border-color: var(--accent);
+  }
 }
 
 @mixin btn-primary {
@@ -34,7 +39,21 @@
   color: white;
   cursor: pointer;
   font-size: 0.9rem;
-  &:hover { opacity: 0.85; }
+  &:hover {
+    opacity: 0.85;
+  }
+}
+
+@mixin btn-delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 4px;
+  &:hover {
+    color: var(--error);
+  }
 }
 
 @mixin btn-save {
@@ -44,7 +63,9 @@
   padding: 6px 8px;
   cursor: pointer;
   transition: border-color var(--transition);
-  &:hover { border-color: var(--accent); }
+  &:hover {
+    border-color: var(--accent);
+  }
 }
 
 @mixin flex-between {
@@ -64,7 +85,9 @@
   cursor: pointer;
   border-bottom: 1px solid var(--border-light);
   transition: background var(--transition);
-  &:hover { background: var(--bg-hover); }
+  &:hover {
+    background: var(--bg-hover);
+  }
 }
 
 @mixin active-item {
@@ -115,7 +138,10 @@
   opacity: 0.5;
   flex-shrink: 0;
   transition: opacity var(--transition);
-  &:hover, &[aria-pressed='true'] { opacity: 1; }
+  &:hover,
+  &[aria-pressed='true'] {
+    opacity: 1;
+  }
 }
 
 @mixin badge-not-for-sale {
@@ -136,7 +162,10 @@
   font-size: $font-size;
   transition: all var(--transition);
 
-  &:hover { border-color: var(--accent); color: var(--accent); }
+  &:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
 
   &--active {
     border-color: var(--accent);
@@ -148,7 +177,9 @@
   &--blocked {
     border-color: #f97316;
     color: #f97316;
-    &.recipe-tab--active { background: color-mix(in srgb, #f97316 15%, transparent); }
+    &.recipe-tab--active {
+      background: color-mix(in srgb, #f97316 15%, transparent);
+    }
   }
 }
 
