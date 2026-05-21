@@ -71,3 +71,17 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 - Design services around a single responsibility
 - Use the `providedIn: 'root'` option for singleton services
 - Use the `inject()` function instead of constructor injection
+
+## Before Committing
+
+Before creating a commit, run the following on staged files:
+
+```powershell
+# Prettier — format staged files (adjust extensions as needed)
+git diff --name-only --cached | Where-Object { $_ -match '\.(ts|html|scss|json)$' } | ForEach-Object { npx prettier --write $_ }
+
+# ESLint — lint staged TS/HTML files
+git diff --name-only --cached | Where-Object { $_ -match '\.(ts|html)$' } | ForEach-Object { npx eslint --fix $_ }
+```
+
+Re-stage any files modified by these commands before committing.
