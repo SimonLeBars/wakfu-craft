@@ -62,7 +62,7 @@
         }
         <button
           class="btn-delete"
-          (click)="$event.stopPropagation(); sessionService.deleteSession(session.id)"
+          (click)="onDeleteSession(session, $event)"
           aria-label="Supprimer la session"
         >
           🗑️

@@ -7,6 +7,8 @@ import { SessionPlannedCraftsComponent } from './session-planned-crafts/session-
 import { SessionShoppingListComponent } from './session-shopping-list/session-shopping-list.component';
 import { SessionProfitabilityComponent } from './session-profitability/session-profitability.component';
 import { SessionCraftOrderComponent } from './session-craft-order/session-craft-order.component';
+import { SessionStepIndicatorComponent } from './session-step-indicator/session-step-indicator.component';
+import { SessionPurchaseStepComponent } from './session-purchase-step/session-purchase-step.component';
 
 @Component({
   selector: 'app-session',
@@ -16,6 +18,8 @@ import { SessionCraftOrderComponent } from './session-craft-order/session-craft-
     SessionShoppingListComponent,
     SessionProfitabilityComponent,
     SessionCraftOrderComponent,
+    SessionStepIndicatorComponent,
+    SessionPurchaseStepComponent,
   ],
   templateUrl: './session.component.html',
   styleUrl: './session.component.scss',
@@ -37,5 +41,9 @@ export class SessionComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await Promise.all([this.sessionService.loadSessions(), this.profile.load()]);
+  }
+
+  protected async onStartPurchase(): Promise<void> {
+    await this.sessionService.setStep('purchase');
   }
 }

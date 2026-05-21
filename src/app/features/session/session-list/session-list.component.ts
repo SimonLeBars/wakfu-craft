@@ -46,4 +46,15 @@ export class SessionListComponent {
   async onSelectSession(session: CraftSession): Promise<void> {
     await this.sessionService.selectSession(session);
   }
+
+  async onDeleteSession(session: CraftSession, event: Event): Promise<void> {
+    event.stopPropagation();
+    if (session.step !== 'preparation') {
+      const ok = confirm(
+        `Supprimer "${session.name}" ?\nDes achats ou crafts ont déjà été enregistrés pour cette session.`,
+      );
+      if (!ok) return;
+    }
+    await this.sessionService.deleteSession(session.id);
+  }
 }

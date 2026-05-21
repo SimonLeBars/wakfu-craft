@@ -1,7 +1,7 @@
 <div class="session-layout">
   <div class="sessions-panel">
     <app-session-list />
-    @if (sessionService.activeSession()) {
+    @if (sessionService.activeSession()?.step === 'preparation') {
       <app-session-planned-crafts />
     }
   </div>
@@ -10,19 +10,43 @@
     @if (!sessionService.activeSession()) {
       <div class="empty-state">Sélectionne ou crée une session</div>
     } @else {
-      <div class="panel-header">
-        <h2>Liste de courses — {{ sessionService.activeSession()!.name }}</h2>
-      </div>
+      <app-session-step-indicator />
 
-      @if (sessionService.shoppingList().length === 0) {
-        <div class="empty-state">Aucun ingrédient — ajoute des crafts à la session</div>
-      } @else {
-        <app-session-shopping-list />
-        <app-session-profitability />
-      }
+      @switch (sessionService.activeSession()!.step) {
+        @case ('preparation') {
+          <div class="panel-header">
+            <h2>Liste de courses — {{ sessionService.activeSession()!.name }}</h2>
+          </div>
 
-      @if (sessionService.craftOrder().length > 0) {
-        <app-session-craft-order />
+          @if (sessionService.shoppingList().length === 0) {
+            <div class="empty-state">Aucun ingrédient — ajoute des crafts à la session</div>
+          } @else {
+            <app-session-shopping-list />
+            <app-session-profitability />
+          }
+
+          @if (sessionService.craftOrder().length > 0) {
+            <app-session-craft-order />
+          }
+
+          @if (sessionService.shoppingList().length > 0) {
+            <div class="step-footer">
+              <button class="btn-next-step" (click)="onStartPurchase()">Passer aux achats →</button>
+            </div>
+          }
+        }
+        @case ('purchase') {
+          <app-session-purchase-step />
+        }
+        @case ('craft') {
+          <div class="empty-state">Étape craft — bientôt disponible</div>
+        }
+        @case ('listing') {
+          <div class="empty-state">Étape mise en vente — bientôt disponible</div>
+        }
+        @case ('sale') {
+          <div class="empty-state">Étape vente — bientôt disponible</div>
+        }
       }
     }
   </div>

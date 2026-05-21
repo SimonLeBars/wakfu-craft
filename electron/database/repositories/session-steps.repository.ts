@@ -76,7 +76,9 @@ export class SessionStepsRepository {
         'INSERT INTO session_purchases (session_id, item_id, unit_price, quantity) VALUES (?, ?, ?, ?)',
       )
       .run(sessionId, itemId, unitPrice, quantity);
-    this.prices.setPrice(itemId, unitPrice);
+    if (this.prices.getLatestPrice(itemId) !== unitPrice) {
+      this.prices.setPrice(itemId, unitPrice);
+    }
     return result.lastInsertRowid as number;
   }
 

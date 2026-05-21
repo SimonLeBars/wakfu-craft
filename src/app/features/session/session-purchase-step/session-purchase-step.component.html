@@ -1,0 +1,93 @@
+<div class="purchase-step">
+  <div class="purchase-list">
+    @for (item of sessionService.shoppingList(); track item.item_id) {
+      @let bought = getBought(item.item_id);
+      @let coverage = getCoverage(item.item_id, item.total_quantity);
+      @let itemPurchases = purchasesByItem().get(item.item_id) ?? [];
+
+      <div class="purchase-item">
+        <div class="purchase-item__header">
+          <div class="purchase-item__info">
+            <span class="purchase-item__name">
+              <app-copy-btn [text]="item.item_name['fr']" />
+            </span>
+            <span class="purchase-item__level">Niv. {{ item.item_level }}</span>
+          </div>
+          <div class="coverage" [class]="'coverage--' + coverage">
+            {{ bought }} / {{ item.total_quantity }}
+          </div>
+        </div>
+
+        @if (itemPurchases.length > 0) {
+          <div class="purchase-entries">
+            @for (purchase of itemPurchases; track purchase.id) {
+              <div class="purchase-entry">
+                <span class="purchase-entry__date">{{
+                  purchase.purchased_at | date: 'dd/MM HH:mm'
+                }}</span>
+                <span class="purchase-entry__qty">× {{ purchase.quantity }}</span>
+                <span class="purchase-entry__price"
+                  >{{ purchase.unit_price | number: '1.0-0' }} k</span
+                >
+                <span class="purchase-entry__total"
+                  >= {{ purchase.unit_price * purchase.quantity | number: '1.0-0' }} k</span
+                >
+                <button
+                  class="btn-delete"
+                  (click)="onDeletePurchase(purchase.id)"
+                  aria-label="Supprimer cet achat"
+                >
+                  ✕
+                </button>
+              </div>
+            }
+          </div>
+        }
+
+        <div class="purchase-form">
+          <div class="form-field">
+            <label [for]="'qty-' + item.item_id" class="form-label">Quantité achetée</label>
+            <input
+              [id]="'qty-' + item.item_id"
+              type="number"
+              class="form-input"
+              min="1"
+              [ngModel]="forms()[item.item_id]?.qty ?? 1"
+              (ngModelChange)="updateQty(item.item_id, +$event)"
+            />
+          </div>
+          <div class="form-field">
+            <label [for]="'price-' + item.item_id" class="form-label">Prix d'achat (k)</label>
+            <input
+              [id]="'price-' + item.item_id"
+              type="number"
+              class="form-input form-input--price"
+              min="1"
+              [ngModel]="forms()[item.item_id]?.price ?? 0"
+              (ngModelChange)="updatePrice(item.item_id, +$event)"
+            />
+          </div>
+          <button
+            class="btn-add"
+            (click)="onAddPurchase(item.item_id)"
+            [disabled]="isAddDisabled(item.item_id)"
+          >
+            Ajouter
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (sessionService.shoppingList().length === 0) {
+      <div class="empty-state">Aucun ingrédient à acheter</div>
+    }
+  </div>
+
+  <div class="purchase-footer">
+    <div class="purchase-footer__total">
+      <span>Total dépensé</span>
+      <strong>{{ totalSpent() | number: '1.0-0' }} k</strong>
+    </div>
+    <button class="btn-next" (click)="onNextStep()">Passer au craft →</button>
+  </div>
+</div>
