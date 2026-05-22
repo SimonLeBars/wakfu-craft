@@ -253,6 +253,7 @@ function registerIpcHandlers(db: DatabaseService): void {
   ipcMain.handle('sessions:getListings', (_e, sessionId: number) =>
     db.getSessionListings(sessionId),
   );
+  ipcMain.handle('sessions:getLastTaxRate', () => db.getLastTaxRate());
   ipcMain.handle(
     'sessions:addListing',
     (

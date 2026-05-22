@@ -10,6 +10,7 @@ import { SessionCraftOrderComponent } from './session-craft-order/session-craft-
 import { SessionStepIndicatorComponent } from './session-step-indicator/session-step-indicator.component';
 import { SessionPurchaseStepComponent } from './session-purchase-step/session-purchase-step.component';
 import { SessionCraftStepComponent } from './session-craft-step/session-craft-step.component';
+import { SessionListingStepComponent } from './session-listing-step/session-listing-step.component';
 
 @Component({
   selector: 'app-session',
@@ -22,6 +23,7 @@ import { SessionCraftStepComponent } from './session-craft-step/session-craft-st
     SessionStepIndicatorComponent,
     SessionPurchaseStepComponent,
     SessionCraftStepComponent,
+    SessionListingStepComponent,
   ],
   templateUrl: './session.component.html',
   styleUrl: './session.component.scss',

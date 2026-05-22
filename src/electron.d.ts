@@ -273,6 +273,7 @@ export interface ElectronAPI {
     getCraftsDone: (sessionId: number) => Promise<SessionCraftDone[]>;
     upsertCraftDone: (sessionId: number, itemId: number, qty: number) => Promise<void>;
     getListings: (sessionId: number) => Promise<SessionListing[]>;
+    getLastTaxRate: () => Promise<number>;
     addListing: (
       sessionItemId: number,
       parentListingId: number | null,

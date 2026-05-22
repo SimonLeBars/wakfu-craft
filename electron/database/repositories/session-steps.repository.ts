@@ -136,6 +136,13 @@ export class SessionStepsRepository {
 
   // ── Mises en vente ──────────────────────────────────────────────────────────
 
+  getLastTaxRate(): number {
+    const row = this.db
+      .prepare('SELECT tax_rate FROM session_listings ORDER BY listed_at DESC LIMIT 1')
+      .get() as { tax_rate: number } | undefined;
+    return row?.tax_rate ?? 3;
+  }
+
   addSessionListing(
     sessionItemId: number,
     parentListingId: number | null,

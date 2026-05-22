@@ -69,6 +69,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     upsertCraftDone: (sessionId: number, itemId: number, qty: number) =>
       ipcRenderer.invoke('sessions:upsertCraftDone', sessionId, itemId, qty),
     getListings: (sessionId: number) => ipcRenderer.invoke('sessions:getListings', sessionId),
+    getLastTaxRate: () => ipcRenderer.invoke('sessions:getLastTaxRate'),
     addListing: (
       sessionItemId: number,
       parentListingId: number | null,

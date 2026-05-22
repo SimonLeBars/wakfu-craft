@@ -7,6 +7,7 @@ import {
   SessionStep,
   SessionPurchase,
   SessionCraftDone,
+  SessionListing,
 } from '@electron';
 
 @Injectable({ providedIn: 'root' })
@@ -16,6 +17,7 @@ export class SessionService {
   readonly sessionItems = signal<RecipeTreeNode[]>([]);
   readonly purchases = signal<SessionPurchase[]>([]);
   readonly craftsDone = signal<SessionCraftDone[]>([]);
+  readonly listings = signal<SessionListing[]>([]);
 
   readonly shoppingList = computed<ShoppingItem[]>(() => {
     const aggregated = new Map<number, ShoppingItem>();
@@ -96,6 +98,10 @@ export class SessionService {
     await this.refreshSessionData();
     if (session.step === 'purchase') await this.loadPurchases();
     if (session.step === 'craft') await this.loadCraftsDone();
+    if (session.step === 'listing') {
+      await this.loadCraftsDone();
+      await this.loadListings();
+    }
   }
 
   async setStep(step: SessionStep): Promise<void> {
@@ -128,6 +134,27 @@ export class SessionService {
     const session = this.activeSession();
     if (!session) return;
     this.craftsDone.set(await window.electronAPI.sessions.getCraftsDone(session.id));
+  }
+
+  async loadListings(): Promise<void> {
+    const session = this.activeSession();
+    if (!session) return;
+    this.listings.set(await window.electronAPI.sessions.getListings(session.id));
+  }
+
+  async addListing(
+    sessionItemId: number,
+    unitPrice: number,
+    quantity: number,
+    taxRate: number,
+  ): Promise<void> {
+    await window.electronAPI.sessions.addListing(sessionItemId, null, unitPrice, quantity, taxRate);
+    await this.loadListings();
+  }
+
+  async deleteListing(id: number): Promise<void> {
+    await window.electronAPI.sessions.deleteListing(id);
+    await this.loadListings();
   }
 
   async upsertCraftDone(itemId: number, qty: number): Promise<void> {

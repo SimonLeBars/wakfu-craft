@@ -254,6 +254,10 @@ export class DatabaseService {
     return this.sessionSteps.getSessionCraftsDone(sessionId);
   }
 
+  getLastTaxRate(): number {
+    return this.sessionSteps.getLastTaxRate();
+  }
+
   addSessionListing(
     sessionItemId: number,
     parentListingId: number | null,
