@@ -1,0 +1,64 @@
+<div class="session-profitability">
+  <h3 class="session-profitability__title">Analyse de rentabilité</h3>
+
+  @if (missingCounts().ingredients > 0 || missingCounts().sell > 0) {
+    <div class="profitability-warning" role="alert">⚠️ Prix manquants — calcul incomplet</div>
+  }
+
+  <div class="breakdown">
+    <div class="breakdown__row">
+      <span class="breakdown__label">Coût des ressources</span>
+      <span class="breakdown__value">{{ totalCost() | number: '1.0-0' }} k</span>
+    </div>
+    <div class="breakdown__row">
+      <span class="breakdown__label">Prix de vente total</span>
+      <span class="breakdown__value" [class.missing]="totalSellPrice() === 0">
+        {{ totalSellPrice() > 0 ? (totalSellPrice() | number: '1.0-0') + ' k' : 'Non renseigné' }}
+      </span>
+    </div>
+    <div class="breakdown__divider"></div>
+    <div class="breakdown__row breakdown__row--total">
+      <span class="breakdown__label">Marge brute</span>
+      <span
+        class="breakdown__value"
+        [class.positive]="grossMargin() > 0"
+        [class.negative]="grossMargin() < 0"
+      >
+        {{ grossMargin() > 0 ? '+' : '' }}{{ grossMargin() | number: '1.0-0' }} k
+      </span>
+    </div>
+    <div class="breakdown__row breakdown__row--total">
+      <span class="breakdown__label">Rentabilité</span>
+      <span
+        class="breakdown__value"
+        [class.positive]="marginPercent() > 0"
+        [class.negative]="marginPercent() < 0"
+      >
+        {{ marginPercent() > 0 ? '+' : '' }}{{ marginPercent() | number: '1.0-1' }} %
+      </span>
+    </div>
+    <div class="breakdown__divider"></div>
+    <div class="breakdown__row breakdown__row--total">
+      <span class="breakdown__label">XP prévu</span>
+      <span class="breakdown__value" [class.missing]="totalExpectedXp() === 0">
+        {{ totalExpectedXp() > 0 ? formatXp(totalExpectedXp()) : 'Niveaux métier manquants' }}
+      </span>
+    </div>
+  </div>
+
+  <div
+    class="verdict"
+    [class.verdict--positive]="grossMargin() > 0"
+    [class.verdict--negative]="grossMargin() < 0"
+    [class.verdict--neutral]="grossMargin() === 0"
+    aria-live="polite"
+  >
+    @if (grossMargin() > 0) {
+      ✅ Session rentable
+    } @else if (grossMargin() < 0) {
+      ❌ Session à perte ({{ grossMargin() | number: '1.0-0' }} k)
+    } @else {
+      ➖ Session à l'équilibre
+    }
+  </div>
+</div>

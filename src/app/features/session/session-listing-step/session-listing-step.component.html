@@ -1,0 +1,116 @@
+<div class="listing-step">
+  <div class="listing-list">
+    @for (node of sessionService.sessionItems(); track node.session_item_id) {
+      @let itemListings = listingsByItem().get(node.session_item_id) ?? [];
+      @let coverage = getCoverage(node.session_item_id, node.item_id, node.craft_quantity);
+      @let crafted = getQuantityCrafted(node.item_id, node.craft_quantity);
+      @let listed = getQuantityListed(node.session_item_id);
+
+      <div class="listing-item">
+        <div class="listing-item__header">
+          <div class="listing-item__info">
+            <span class="listing-item__name">
+              <app-copy-btn [text]="node.item_name['fr']" />
+            </span>
+            <span class="listing-item__level">
+              Niv. {{ node.item_level }}
+              <span class="badge-rarity" [style.color]="node.rarity | rarityColor">{{
+                node.rarity | rarityLabel
+              }}</span>
+            </span>
+          </div>
+          <div class="coverage" [class]="'coverage--' + coverage">{{ listed }} / {{ crafted }}</div>
+        </div>
+
+        @if (itemListings.length > 0) {
+          <div class="listing-entries">
+            @for (listing of itemListings; track listing.id) {
+              <div class="listing-entry">
+                <span class="listing-entry__date">{{
+                  listing.listed_at | date: 'dd/MM HH:mm'
+                }}</span>
+                <span class="listing-entry__qty">× {{ listing.quantity }}</span>
+                <span class="listing-entry__price"
+                  >{{ listing.unit_price | number: '1.0-0' }} k</span
+                >
+                <span class="listing-entry__tax">{{ listing.tax_rate }}%</span>
+                <span class="listing-entry__total"
+                  >=
+                  {{
+                    listing.unit_price * listing.quantity - listing.tax_amount | number: '1.0-0'
+                  }}
+                  k net</span
+                >
+                <button
+                  class="btn-delete"
+                  (click)="onDeleteListing(listing.id)"
+                  aria-label="Supprimer cette mise en vente"
+                >
+                  ✕
+                </button>
+              </div>
+            }
+          </div>
+        }
+
+        <div class="listing-form">
+          <div class="form-field">
+            <label [for]="'qty-' + node.session_item_id" class="form-label">Quantité</label>
+            <input
+              [id]="'qty-' + node.session_item_id"
+              type="number"
+              class="form-input"
+              min="1"
+              [ngModel]="forms()[node.session_item_id]?.quantity ?? 1"
+              (ngModelChange)="updateForm(node.session_item_id, 'quantity', +$event)"
+            />
+          </div>
+          <div class="form-field">
+            <label [for]="'price-' + node.session_item_id" class="form-label"
+              >Prix unitaire (k)</label
+            >
+            <input
+              [id]="'price-' + node.session_item_id"
+              type="number"
+              class="form-input form-input--price"
+              min="1"
+              [ngModel]="forms()[node.session_item_id]?.unitPrice ?? 0"
+              (ngModelChange)="updateForm(node.session_item_id, 'unitPrice', +$event)"
+            />
+          </div>
+          <div class="form-field">
+            <label [for]="'tax-' + node.session_item_id" class="form-label">Taxe (%)</label>
+            <input
+              [id]="'tax-' + node.session_item_id"
+              type="number"
+              class="form-input form-input--tax"
+              min="0"
+              max="100"
+              [ngModel]="forms()[node.session_item_id]?.taxRate ?? 3"
+              (ngModelChange)="updateForm(node.session_item_id, 'taxRate', +$event)"
+            />
+          </div>
+          <button
+            class="btn-add"
+            (click)="onAddListing(node)"
+            [disabled]="isAddDisabled(node.session_item_id)"
+          >
+            Lister
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (sessionService.sessionItems().length === 0) {
+      <div class="empty-state">Aucun item à mettre en vente</div>
+    }
+  </div>
+
+  <div class="listing-footer">
+    <div class="listing-footer__total">
+      <span>Revenu net estimé</span>
+      <strong>{{ totalRevenue() | number: '1.0-0' }} k</strong>
+    </div>
+    <button class="btn-next" (click)="onNextStep()">Passer à l'étape vente →</button>
+  </div>
+</div>

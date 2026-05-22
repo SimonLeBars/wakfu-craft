@@ -1,0 +1,66 @@
+<div class="session-crafts">
+  <h3>Planifiés</h3>
+  @for (item of sessionService.sessionItems(); track item.session_item_id) {
+    <div
+      class="craft-item"
+      [attr.tabindex]="item.children.length > 0 ? 0 : null"
+      [attr.aria-describedby]="
+        item.children.length > 0 ? 'craft-tooltip-' + item.session_item_id : null
+      "
+      (mouseenter)="showCraftTooltip(item, $event)"
+      (mouseleave)="hideCraftTooltip()"
+      (focus)="showCraftTooltip(item, $event)"
+      (blur)="hideCraftTooltip()"
+    >
+      <span class="craft-item__name">
+        <app-copy-btn [text]="item.item_name['fr']" />
+        <span class="badge-rarity" [style.color]="item.rarity | rarityColor">{{
+          item.rarity | rarityLabel
+        }}</span>
+      </span>
+      <div class="craft-item__controls">
+        @if (item.result_quantity > 1) {
+          <span class="craft-produces" title="Items produits"
+            >= {{ item.craft_quantity * item.result_quantity }}</span
+          >
+        }
+        <input
+          type="number"
+          [value]="item.craft_quantity"
+          min="1"
+          class="qty-input"
+          (change)="onUpdateQty(item.session_item_id, $any($event.target).value)"
+        />
+        <button
+          class="btn-delete"
+          (click)="onRemoveItem(item.session_item_id)"
+          aria-label="Retirer l'item"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  }
+  @if (sessionService.sessionItems().length === 0) {
+    <div class="empty-crafts">Ajoute des items depuis l'écran Items 🗡️</div>
+  }
+</div>
+
+@if (hoveredNode() && tooltipPos()) {
+  <div
+    class="craft-tooltip"
+    [id]="'craft-tooltip-' + hoveredNode()!.session_item_id"
+    role="tooltip"
+    [style.left.px]="tooltipPos()!.x"
+    [style.top.px]="tooltipPos()!.y"
+  >
+    <div class="craft-tooltip__title">{{ hoveredNode()!.item_name['fr'] }}</div>
+    <div class="craft-tooltip__label">Sous-crafts</div>
+    @for (sub of hoveredSubCrafts(); track $index) {
+      <div class="craft-tooltip__row" [style.padding-left.px]="sub.depth * 10">
+        <span class="craft-tooltip__name">{{ sub.name }}</span>
+        <span class="craft-tooltip__qty">× {{ sub.qty }}</span>
+      </div>
+    }
+  </div>
+}

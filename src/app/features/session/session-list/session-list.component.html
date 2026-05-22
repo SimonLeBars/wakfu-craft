@@ -1,0 +1,77 @@
+<div class="panel-header">
+  <h2>Sessions</h2>
+  <button
+    class="btn-icon"
+    (click)="showNewSession.set(!showNewSession())"
+    aria-label="Nouvelle session"
+  >
+    ＋
+  </button>
+</div>
+
+@if (showNewSession()) {
+  <div class="new-session-form">
+    <input
+      type="text"
+      placeholder="Nom de la session..."
+      [ngModel]="newSessionName()"
+      (ngModelChange)="newSessionName.set($event)"
+      (keyup.enter)="onCreateSession()"
+      class="text-input"
+      autofocus
+    />
+    <button class="btn-primary" (click)="onCreateSession()">Créer</button>
+  </div>
+}
+
+<div class="sessions-list">
+  @for (session of sessionService.sessions(); track session.id) {
+    <div
+      class="session-item"
+      [class.active]="sessionService.activeSession()?.id === session.id"
+      (click)="renamingId() !== session.id && onSelectSession(session)"
+    >
+      <div class="session-item__info">
+        @if (renamingId() === session.id) {
+          <input
+            class="rename-input"
+            [ngModel]="renameValue()"
+            (ngModelChange)="renameValue.set($event)"
+            (keyup.enter)="onConfirmRename()"
+            (keyup.escape)="onCancelRename($event)"
+            (blur)="onConfirmRename()"
+            (click)="$event.stopPropagation()"
+            aria-label="Nouveau nom de la session"
+            autofocus
+          />
+        } @else {
+          <span class="session-item__name">{{ session.name }}</span>
+          <span class="session-item__count">{{ session.item_count }} item(s)</span>
+        }
+      </div>
+
+      <div class="session-item__actions">
+        @if (renamingId() !== session.id) {
+          <button
+            class="btn-icon-sm"
+            (click)="onStartRename(session, $event)"
+            aria-label="Renommer la session"
+          >
+            ✏️
+          </button>
+        }
+        <button
+          class="btn-delete"
+          (click)="onDeleteSession(session, $event)"
+          aria-label="Supprimer la session"
+        >
+          🗑️
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (sessionService.sessions().length === 0) {
+    <div class="empty-sessions">Aucune session — crée-en une !</div>
+  }
+</div>

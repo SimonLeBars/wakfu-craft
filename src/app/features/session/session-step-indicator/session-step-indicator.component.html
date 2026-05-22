@@ -1,0 +1,27 @@
+<nav class="stepper" aria-label="Étapes de la session">
+  @for (step of steps; track step.key; let i = $index, last = $last) {
+    <div
+      class="step"
+      [class.step--past]="getStatus(step.key) === 'past'"
+      [class.step--current]="getStatus(step.key) === 'current'"
+      [class.step--future]="getStatus(step.key) === 'future'"
+      (click)="onStepClick(step.key)"
+      [attr.aria-current]="getStatus(step.key) === 'current' ? 'step' : null"
+      [attr.role]="getStatus(step.key) === 'past' ? 'button' : null"
+      [attr.tabindex]="getStatus(step.key) === 'past' ? '0' : null"
+      (keyup.enter)="onStepClick(step.key)"
+    >
+      <div class="step__bubble">
+        @if (getStatus(step.key) === 'past') {
+          ✓
+        } @else {
+          {{ i + 1 }}
+        }
+      </div>
+      <span class="step__label">{{ step.label }}</span>
+    </div>
+    @if (!last) {
+      <div class="connector" [class.connector--done]="getStatus(step.key) === 'past'"></div>
+    }
+  }
+</nav>

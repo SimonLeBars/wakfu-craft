@@ -1,0 +1,32 @@
+<div class="shopping-list">
+  @for (item of sessionService.shoppingList(); track item.item_id) {
+    <div class="shopping-item">
+      <div class="shopping-item__info">
+        <span class="shopping-item__name"><app-copy-btn [text]="item.item_name['fr']" /></span>
+        <div class="shopping-item__meta">
+          <span class="shopping-item__level">Niv. {{ item.item_level }}</span>
+          <span class="badge-rarity" [style.color]="item.rarity | rarityColor">{{
+            item.rarity | rarityLabel
+          }}</span>
+        </div>
+      </div>
+      <div class="shopping-item__right">
+        @if (priceService.getPrice(item.item_id); as price) {
+          <span class="shopping-item__unit-price">{{ price | number: '1.0-0' }} k</span>
+          <span class="shopping-item__qty">× {{ item.total_quantity }}</span>
+          <span class="shopping-item__cost"
+            >{{ price * item.total_quantity | number: '1.0-0' }} k</span
+          >
+        } @else {
+          <span class="shopping-item__qty">× {{ item.total_quantity }}</span>
+          <span class="shopping-item__cost missing">Prix manquant</span>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+<div class="shopping-total">
+  <span>Total estimé</span>
+  <span class="shopping-total__value">{{ totalCost() | number: '1.0-0' }} k</span>
+</div>

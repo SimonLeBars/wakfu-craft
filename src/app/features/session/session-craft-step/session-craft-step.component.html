@@ -1,0 +1,105 @@
+<div class="craft-step">
+  <div class="craft-list">
+    @for (node of sessionService.craftOrder(); track node.item_id) {
+      @let done = craftsDoneMap().get(node.item_id);
+      @let coverage = getCoverage(node.item_id, node.craft_quantity);
+
+      <div class="craft-item">
+        <div class="craft-item__header">
+          <div class="craft-item__info">
+            <span class="craft-item__name">
+              <app-copy-btn [text]="node.item_name['fr']" />
+            </span>
+            <span class="craft-item__level">
+              Niv. {{ node.item_level }}
+              <span class="badge-rarity" [style.color]="node.rarity | rarityColor">{{
+                node.rarity | rarityLabel
+              }}</span>
+            </span>
+          </div>
+          <div class="coverage" [class]="'coverage--' + coverage">
+            {{ done ? done.quantity_crafted : 0 }} / {{ node.craft_quantity }}
+          </div>
+        </div>
+
+        @if (done) {
+          <div class="craft-item__timestamp">
+            Enregistré le {{ done.crafted_at | date: 'dd/MM/yyyy HH:mm' }}
+          </div>
+        }
+
+        <div class="craft-form">
+          <div class="form-field">
+            <label [for]="'qty-' + node.item_id" class="form-label"> Quantité craftée </label>
+            <input
+              [id]="'qty-' + node.item_id"
+              type="number"
+              class="form-input"
+              min="1"
+              [ngModel]="forms()[node.item_id] ?? node.craft_quantity"
+              (ngModelChange)="updateForm(node.item_id, +$event)"
+            />
+          </div>
+          <button
+            class="btn-validate"
+            (click)="onValidate(node.item_id)"
+            [disabled]="isSubmitDisabled(node.item_id, node.craft_quantity)"
+          >
+            Valider
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (sessionService.craftOrder().length === 0) {
+      <div class="empty-state">Aucun craft à réaliser</div>
+    }
+  </div>
+
+  @if (relevantCategories().length > 0) {
+    <div class="profession-levels">
+      <div class="profession-levels__title">Niveaux de métier</div>
+      <div class="profession-levels__list">
+        @for (cat of relevantCategories(); track cat.id) {
+          <div class="profession-level-row">
+            <label [for]="'level-' + cat.id" class="profession-level-row__name">
+              {{ cat.name['fr'] }}
+            </label>
+            <div class="profession-level-row__field">
+              <button class="btn-arrow" (click)="stepLevel(cat.id, -1)" aria-label="Diminuer">
+                −
+              </button>
+              <input
+                [id]="'level-' + cat.id"
+                type="number"
+                class="level-input"
+                min="1"
+                max="200"
+                [ngModel]="levelForms()[cat.id] ?? professionService.getLevel(cat.id)"
+                (ngModelChange)="updateLevelForm(cat.id, +$event)"
+              />
+              <button class="btn-arrow" (click)="stepLevel(cat.id, 1)" aria-label="Augmenter">
+                +
+              </button>
+              <button
+                class="btn-save-level"
+                [disabled]="isLevelSaveDisabled(cat.id)"
+                (click)="onSaveLevel(cat.id)"
+              >
+                Sauvegarder
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <div class="craft-footer">
+    <div class="craft-footer__summary">
+      <span>Items craftés</span>
+      <strong>{{ fullyDoneCount() }} / {{ sessionService.craftOrder().length }}</strong>
+    </div>
+    <button class="btn-next" (click)="onNextStep()">Passer à la mise en vente →</button>
+  </div>
+</div>

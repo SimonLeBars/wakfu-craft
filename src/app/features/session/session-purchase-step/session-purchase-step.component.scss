@@ -1,0 +1,191 @@
+@use 'styles/mixins' as *;
+
+.purchase-step {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.purchase-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.purchase-item {
+  @include card;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &__header {
+    @include flex-between;
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__name {
+    font-weight: 500;
+    font-size: 0.9rem;
+  }
+
+  &__level {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+}
+
+.coverage {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+
+  &--full {
+    background: color-mix(in srgb, #4caf50 15%, transparent);
+    color: #4caf50;
+  }
+
+  &--partial {
+    background: color-mix(in srgb, #ff9800 15%, transparent);
+    color: #ff9800;
+  }
+
+  &--none {
+    background: color-mix(in srgb, var(--error) 15%, transparent);
+    color: var(--error);
+  }
+}
+
+.purchase-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.purchase-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+
+  &__date {
+    color: var(--text-muted);
+    flex: 0 0 90px;
+  }
+
+  &__qty {
+    flex: 0 0 auto;
+  }
+
+  &__price {
+    flex: 0 0 auto;
+  }
+
+  &__total {
+    flex: 1;
+    color: var(--text-muted);
+  }
+
+  .btn-delete {
+    @include btn-delete;
+    font-size: 0.7rem;
+    padding: 2px 4px;
+    margin-left: auto;
+  }
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.form-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.purchase-form {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+
+  .form-input {
+    @include input-base(var(--bg-surface));
+    padding: 6px 8px;
+    width: 72px;
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+    }
+
+    &--price {
+      width: 120px;
+    }
+  }
+
+  .btn-add {
+    @include btn-primary;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  padding: 40px;
+}
+
+.purchase-footer {
+  @include flex-between;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-surface);
+  flex-shrink: 0;
+
+  &__total {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    span {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    strong {
+      font-size: 1rem;
+    }
+  }
+
+  .btn-next {
+    @include btn-primary;
+    padding: 8px 16px;
+  }
+}

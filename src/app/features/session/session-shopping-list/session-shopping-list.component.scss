@@ -1,0 +1,83 @@
+@use 'styles/mixins' as *;
+
+.shopping-list {
+  flex: 1;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shopping-item {
+  @include card;
+  @include flex-between;
+  padding: 12px 16px;
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  &__name {
+    font-weight: 500;
+  }
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  &__level {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  &__unit-price {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    min-width: 60px;
+    text-align: right;
+  }
+
+  &__qty {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 40px;
+    text-align: right;
+  }
+
+  &__cost {
+    font-family: monospace;
+    color: var(--success);
+    min-width: 80px;
+    text-align: right;
+    &.missing {
+      color: var(--text-muted);
+      font-style: italic;
+      font-size: 0.8rem;
+    }
+  }
+}
+
+.shopping-total {
+  @include flex-between;
+  padding: 16px 24px;
+  border-top: 2px solid var(--border);
+  font-weight: 700;
+  font-size: 1.1rem;
+  background: var(--bg-primary);
+  position: sticky;
+  bottom: 0;
+
+  &__value {
+    color: var(--success);
+    font-family: monospace;
+  }
+}

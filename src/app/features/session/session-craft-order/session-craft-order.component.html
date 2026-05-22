@@ -1,0 +1,18 @@
+<div class="craft-order">
+  <h3 class="craft-order__title">Ordre de craft</h3>
+  <ol class="craft-order__list" aria-label="Ordre des crafts">
+    @for (step of sessionService.craftOrder(); track $index) {
+      <li class="craft-order__item">
+        <span class="craft-order__num">{{ $index + 1 }}</span>
+        <span class="craft-order__info">
+          <span class="craft-order__name"><app-copy-btn [text]="step.item_name['fr']" /></span>
+          <span class="badge-rarity" [style.color]="step.rarity | rarityColor">{{
+            step.rarity | rarityLabel
+          }}</span>
+          <span class="craft-order__level">Niv. {{ step.item_level }}</span>
+        </span>
+        <span class="craft-order__qty">× {{ step.craft_quantity }}</span>
+      </li>
+    }
+  </ol>
+</div>

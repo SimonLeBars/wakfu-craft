@@ -12,8 +12,10 @@ import { ProfessionProfileService } from '@services/profession-profile.service';
 export class ProfessionProfileComponent {
   protected readonly profile = inject(ProfessionProfileService);
 
-  readonly craftCategories    = computed(() => this.profile.categories().filter(c => !c.is_innate));
-  readonly gatheringCategories = computed(() => this.profile.categories().filter(c => c.is_innate));
+  readonly craftCategories = computed(() => this.profile.categories().filter((c) => !c.is_innate));
+  readonly gatheringCategories = computed(() =>
+    this.profile.categories().filter((c) => c.is_innate),
+  );
 
   constructor() {
     this.profile.load();
@@ -31,5 +33,10 @@ export class ProfessionProfileComponent {
 
   protected levelOf(categoryId: number): number {
     return this.profile.getLevel(categoryId);
+  }
+
+  protected stepLevel(categoryId: number, delta: number): void {
+    const next = Math.min(230, Math.max(0, this.levelOf(categoryId) + delta));
+    this.profile.setLevel(categoryId, next);
   }
 }
