@@ -60,6 +60,14 @@
   gap: 8px;
 }
 
+.btn-arrow {
+  @include btn-icon;
+  width: 28px;
+  height: 28px;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
 .level-input {
   width: 70px;
   padding: 6px 8px;
@@ -71,9 +79,14 @@
   font-weight: 600;
   text-align: center;
 
-  &:focus { outline: none; border-color: var(--accent); }
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
   &::-webkit-inner-spin-button,
-  &::-webkit-outer-spin-button { -webkit-appearance: none; }
+  &::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+  }
 }
 
 .level-max {

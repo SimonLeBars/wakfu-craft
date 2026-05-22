@@ -246,8 +246,8 @@ export class DatabaseService {
     this.sessionSteps.deleteSessionPurchase(id);
   }
 
-  upsertCraftDone(sessionItemId: number, quantityCrafted: number): void {
-    this.sessionSteps.upsertCraftDone(sessionItemId, quantityCrafted);
+  upsertCraftDone(sessionId: number, itemId: number, quantityCrafted: number): void {
+    this.sessionSteps.upsertCraftDone(sessionId, itemId, quantityCrafted);
   }
 
   getSessionCraftsDone(sessionId: number): SessionCraftDone[] {

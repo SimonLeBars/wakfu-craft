@@ -11,6 +11,8 @@ import { DecimalPipe, DatePipe } from '@angular/common';
 import { SessionService } from '@services/session.service';
 import { SessionPurchase } from '@electron';
 import { CopyBtnComponent } from '@shared/components/copy-btn.component';
+import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
+import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
 
 interface PurchaseForm {
   qty: number;
@@ -19,7 +21,7 @@ interface PurchaseForm {
 
 @Component({
   selector: 'app-session-purchase-step',
-  imports: [FormsModule, DecimalPipe, DatePipe, CopyBtnComponent],
+  imports: [FormsModule, DecimalPipe, DatePipe, CopyBtnComponent, RarityColorPipe, RarityLabelPipe],
   templateUrl: './session-purchase-step.component.html',
   styleUrl: './session-purchase-step.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

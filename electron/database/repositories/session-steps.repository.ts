@@ -21,7 +21,8 @@ interface SessionPurchaseRow {
 }
 interface SessionCraftDoneRow {
   id: number;
-  session_item_id: number;
+  session_id: number;
+  item_id: number;
   quantity_crafted: number;
   crafted_at: string;
 }
@@ -107,28 +108,27 @@ export class SessionStepsRepository {
 
   // ── Crafts effectués ────────────────────────────────────────────────────────
 
-  upsertCraftDone(sessionItemId: number, quantityCrafted: number): void {
+  upsertCraftDone(sessionId: number, itemId: number, quantityCrafted: number): void {
     this.db
       .prepare(
         `
-      INSERT INTO session_crafts_done (session_item_id, quantity_crafted, crafted_at)
-      VALUES (?, ?, datetime('now'))
-      ON CONFLICT(session_item_id) DO UPDATE SET
+      INSERT INTO session_crafts_done (session_id, item_id, quantity_crafted, crafted_at)
+      VALUES (?, ?, ?, datetime('now'))
+      ON CONFLICT(session_id, item_id) DO UPDATE SET
         quantity_crafted = excluded.quantity_crafted,
         crafted_at       = excluded.crafted_at
     `,
       )
-      .run(sessionItemId, quantityCrafted);
+      .run(sessionId, itemId, quantityCrafted);
   }
 
   getSessionCraftsDone(sessionId: number): SessionCraftDone[] {
     return this.db
       .prepare(
         `
-      SELECT cd.id, cd.session_item_id, cd.quantity_crafted, cd.crafted_at
-      FROM session_crafts_done cd
-      JOIN craft_session_items csi ON csi.id = cd.session_item_id
-      WHERE csi.session_id = ?
+      SELECT id, session_id, item_id, quantity_crafted, crafted_at
+      FROM session_crafts_done
+      WHERE session_id = ?
     `,
       )
       .all(sessionId) as SessionCraftDoneRow[];
@@ -256,7 +256,7 @@ export class SessionStepsRepository {
         last_s.sold_at                                                     AS last_sold_at
       FROM craft_session_items csi
       JOIN items i ON i.id = csi.item_id
-      LEFT JOIN session_crafts_done cd ON cd.session_item_id = csi.id
+      LEFT JOIN session_crafts_done cd ON cd.session_id = csi.session_id AND cd.item_id = csi.item_id
       LEFT JOIN (
         SELECT session_item_id, SUM(quantity) AS quantity_listed
         FROM session_listings GROUP BY session_item_id

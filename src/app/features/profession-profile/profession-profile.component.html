@@ -1,11 +1,12 @@
 <div class="profile-layout">
   <div class="profile-header">
     <h2 class="profile-title">Profil Métier</h2>
-    <p class="profile-hint">Renseigne tes niveaux pour que l'optimiseur XP les pré-remplisse automatiquement.</p>
+    <p class="profile-hint">
+      Renseigne tes niveaux pour que l'optimiseur XP les pré-remplisse automatiquement.
+    </p>
   </div>
 
   <div class="profile-content">
-
     <section class="prof-section guild-bonus-section">
       <h3 class="section-title">Bonus de guilde</h3>
       <div class="guild-bonus-row">
@@ -34,6 +35,9 @@
             <div class="prof-card">
               <span class="prof-name">{{ cat.name['fr'] }}</span>
               <div class="prof-level-row">
+                <button class="btn-arrow" (click)="stepLevel(cat.id, -1)" aria-label="Diminuer">
+                  −
+                </button>
                 <input
                   type="number"
                   min="0"
@@ -43,10 +47,13 @@
                   (change)="onLevelChange(cat.id, $any($event.target).value)"
                   [attr.aria-label]="'Niveau ' + cat.name['fr']"
                 />
+                <button class="btn-arrow" (click)="stepLevel(cat.id, 1)" aria-label="Augmenter">
+                  +
+                </button>
                 <span class="level-max">/ 230</span>
               </div>
               <div class="level-bar" [attr.aria-hidden]="true">
-                <div class="level-bar__fill" [style.width.%]="levelOf(cat.id) / 230 * 100"></div>
+                <div class="level-bar__fill" [style.width.%]="(levelOf(cat.id) / 230) * 100"></div>
               </div>
             </div>
           }
@@ -62,6 +69,9 @@
             <div class="prof-card">
               <span class="prof-name">{{ cat.name['fr'] }}</span>
               <div class="prof-level-row">
+                <button class="btn-arrow" (click)="stepLevel(cat.id, -1)" aria-label="Diminuer">
+                  −
+                </button>
                 <input
                   type="number"
                   min="0"
@@ -71,10 +81,13 @@
                   (change)="onLevelChange(cat.id, $any($event.target).value)"
                   [attr.aria-label]="'Niveau ' + cat.name['fr']"
                 />
+                <button class="btn-arrow" (click)="stepLevel(cat.id, 1)" aria-label="Augmenter">
+                  +
+                </button>
                 <span class="level-max">/ 230</span>
               </div>
               <div class="level-bar" [attr.aria-hidden]="true">
-                <div class="level-bar__fill" [style.width.%]="levelOf(cat.id) / 230 * 100"></div>
+                <div class="level-bar__fill" [style.width.%]="(levelOf(cat.id) / 230) * 100"></div>
               </div>
             </div>
           }
@@ -87,6 +100,5 @@
         Aucun métier trouvé — synchronise les données depuis l'onglet 🔄 Sync.
       </div>
     }
-
   </div>
 </div>

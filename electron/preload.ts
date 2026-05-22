@@ -66,8 +66,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('sessions:addPurchase', sessionId, itemId, unitPrice, quantity),
     deletePurchase: (id: number) => ipcRenderer.invoke('sessions:deletePurchase', id),
     getCraftsDone: (sessionId: number) => ipcRenderer.invoke('sessions:getCraftsDone', sessionId),
-    upsertCraftDone: (sessionItemId: number, qty: number) =>
-      ipcRenderer.invoke('sessions:upsertCraftDone', sessionItemId, qty),
+    upsertCraftDone: (sessionId: number, itemId: number, qty: number) =>
+      ipcRenderer.invoke('sessions:upsertCraftDone', sessionId, itemId, qty),
     getListings: (sessionId: number) => ipcRenderer.invoke('sessions:getListings', sessionId),
     addListing: (
       sessionItemId: number,

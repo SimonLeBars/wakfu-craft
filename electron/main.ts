@@ -246,8 +246,8 @@ function registerIpcHandlers(db: DatabaseService): void {
   ipcMain.handle('sessions:getCraftsDone', (_e, sessionId: number) =>
     db.getSessionCraftsDone(sessionId),
   );
-  ipcMain.handle('sessions:upsertCraftDone', (_e, sessionItemId: number, qty: number) =>
-    db.upsertCraftDone(sessionItemId, qty),
+  ipcMain.handle('sessions:upsertCraftDone', (_e, sessionId: number, itemId: number, qty: number) =>
+    db.upsertCraftDone(sessionId, itemId, qty),
   );
 
   ipcMain.handle('sessions:getListings', (_e, sessionId: number) =>

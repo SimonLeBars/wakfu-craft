@@ -6,6 +6,7 @@ import {
   ShoppingItem,
   SessionStep,
   SessionPurchase,
+  SessionCraftDone,
 } from '@electron';
 
 @Injectable({ providedIn: 'root' })
@@ -14,6 +15,7 @@ export class SessionService {
   readonly activeSession = signal<CraftSession | null>(null);
   readonly sessionItems = signal<RecipeTreeNode[]>([]);
   readonly purchases = signal<SessionPurchase[]>([]);
+  readonly craftsDone = signal<SessionCraftDone[]>([]);
 
   readonly shoppingList = computed<ShoppingItem[]>(() => {
     const aggregated = new Map<number, ShoppingItem>();
@@ -93,6 +95,7 @@ export class SessionService {
     this.activeSession.set(session);
     await this.refreshSessionData();
     if (session.step === 'purchase') await this.loadPurchases();
+    if (session.step === 'craft') await this.loadCraftsDone();
   }
 
   async setStep(step: SessionStep): Promise<void> {
@@ -119,6 +122,19 @@ export class SessionService {
   async deletePurchase(id: number): Promise<void> {
     await window.electronAPI.sessions.deletePurchase(id);
     await this.loadPurchases();
+  }
+
+  async loadCraftsDone(): Promise<void> {
+    const session = this.activeSession();
+    if (!session) return;
+    this.craftsDone.set(await window.electronAPI.sessions.getCraftsDone(session.id));
+  }
+
+  async upsertCraftDone(itemId: number, qty: number): Promise<void> {
+    const session = this.activeSession();
+    if (!session) return;
+    await window.electronAPI.sessions.upsertCraftDone(session.id, itemId, qty);
+    await this.loadCraftsDone();
   }
 
   async deleteSession(id: number): Promise<void> {

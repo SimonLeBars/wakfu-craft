@@ -10,6 +10,8 @@ interface SessionItemDbRow {
   item_level: number;
   rarity: number | null;
   recipe_id: number | null;
+  category_id: number | null;
+  category_name: string | null;
 }
 interface SubRecipeRow {
   item_id: number;
@@ -32,10 +34,13 @@ const SESSION_ITEM_SELECT = `
            json_extract(i.raw_data, '$.definition.item.baseParameters.rarity'),
            json_extract(i.raw_data, '$.definition.rarity'),
            0
-         ) AS rarity
+         ) AS rarity,
+         r.category_id,
+         rc.name AS category_name
   FROM craft_session_items si
   JOIN items i ON i.id = si.item_id
   LEFT JOIN recipes r ON r.id = si.recipe_id
+  LEFT JOIN recipe_categories rc ON rc.id = r.category_id
 `;
 
 export class SessionsRepository {
@@ -140,6 +145,12 @@ export class SessionsRepository {
       WHERE ri.recipe_id = ?
     `);
     const recipeResultStmt = this.db.prepare('SELECT result_quantity FROM recipes WHERE id = ?');
+    const recipeCategoryStmt = this.db.prepare(`
+      SELECT r.category_id, rc.name AS category_name
+      FROM recipes r
+      LEFT JOIN recipe_categories rc ON rc.id = r.category_id
+      WHERE r.id = ?
+    `);
 
     const buildTreeNode = (
       sessionItemId: number,
@@ -149,6 +160,8 @@ export class SessionsRepository {
       recipeId: number | null,
       subRecipes: Record<number, number>,
       itemData: { item_name: string; item_level: number; rarity: number | null },
+      categoryId: number | null,
+      categoryName: string | null,
     ): RecipeTreeNode => {
       const boughtIngredients: BoughtIngredient[] = [];
       const children: RecipeTreeNode[] = [];
@@ -161,6 +174,9 @@ export class SessionsRepository {
             const childResult = recipeResultStmt.get(childRecipeId) as
               | { result_quantity: number }
               | undefined;
+            const childCat = recipeCategoryStmt.get(childRecipeId) as
+              | { category_id: number | null; category_name: string | null }
+              | undefined;
             children.push(
               buildTreeNode(
                 0,
@@ -170,6 +186,8 @@ export class SessionsRepository {
                 childRecipeId,
                 subRecipes,
                 { item_name: ing.item_name, item_level: ing.item_level, rarity: ing.rarity },
+                childCat?.category_id ?? null,
+                childCat?.category_name ?? null,
               ),
             );
           } else {
@@ -193,6 +211,9 @@ export class SessionsRepository {
         craft_quantity: craftQty,
         result_quantity: resultQty,
         recipe_id: recipeId,
+        category_id: categoryId,
+        category_name:
+          categoryName != null ? (JSON.parse(categoryName) as Record<string, string>) : null,
         bought_ingredients: boughtIngredients,
         children,
       };
@@ -211,6 +232,8 @@ export class SessionsRepository {
         row.recipe_id,
         subRecipes,
         { item_name: row.item_name, item_level: row.item_level, rarity: row.rarity },
+        row.category_id ?? null,
+        row.category_name ?? null,
       );
     });
   }

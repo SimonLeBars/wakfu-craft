@@ -11,7 +11,12 @@
             <span class="purchase-item__name">
               <app-copy-btn [text]="item.item_name['fr']" />
             </span>
-            <span class="purchase-item__level">Niv. {{ item.item_level }}</span>
+            <span class="purchase-item__level">
+              Niv. {{ item.item_level }}
+              <span class="badge-rarity" [style.color]="item.rarity | rarityColor">{{
+                item.rarity | rarityLabel
+              }}</span>
+            </span>
           </div>
           <div class="coverage" [class]="'coverage--' + coverage">
             {{ bought }} / {{ item.total_quantity }}

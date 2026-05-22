@@ -105,6 +105,8 @@ export interface RecipeTreeNode {
   craft_quantity: number;
   result_quantity: number;
   recipe_id: number | null;
+  category_id: number | null;
+  category_name: Record<string, string> | null;
   bought_ingredients: BoughtIngredient[];
   children: RecipeTreeNode[];
 }
@@ -131,7 +133,8 @@ export interface SessionPurchase {
 
 export interface SessionCraftDone {
   id: number;
-  session_item_id: number;
+  session_id: number;
+  item_id: number;
   quantity_crafted: number;
   crafted_at: string;
 }
@@ -268,7 +271,7 @@ export interface ElectronAPI {
     ) => Promise<number>;
     deletePurchase: (id: number) => Promise<void>;
     getCraftsDone: (sessionId: number) => Promise<SessionCraftDone[]>;
-    upsertCraftDone: (sessionItemId: number, qty: number) => Promise<void>;
+    upsertCraftDone: (sessionId: number, itemId: number, qty: number) => Promise<void>;
     getListings: (sessionId: number) => Promise<SessionListing[]>;
     addListing: (
       sessionItemId: number,
