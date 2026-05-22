@@ -1,7 +1,15 @@
 import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SessionService } from '@services/session.service';
-import { CraftSession } from '@electron';
+import { CraftSession, SessionStep } from '@electron';
+
+const STEP_LABELS: Record<SessionStep, string> = {
+  preparation: 'Préparation',
+  purchase: 'Achat',
+  craft: 'Craft',
+  listing: 'Mise en vente',
+  sale: 'Vente',
+};
 
 @Component({
   selector: 'app-session-list',
@@ -45,6 +53,10 @@ export class SessionListComponent {
 
   async onSelectSession(session: CraftSession): Promise<void> {
     await this.sessionService.selectSession(session);
+  }
+
+  protected stepLabel(session: CraftSession): string {
+    return STEP_LABELS[session.step];
   }
 
   async onDeleteSession(session: CraftSession, event: Event): Promise<void> {

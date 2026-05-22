@@ -47,6 +47,7 @@
         } @else {
           <span class="session-item__name">{{ session.name }}</span>
           <span class="session-item__count">{{ session.item_count }} item(s)</span>
+          <span class="session-item__step">{{ stepLabel(session) }}</span>
         }
       </div>
 
