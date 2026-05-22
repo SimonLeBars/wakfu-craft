@@ -14,7 +14,7 @@ import {
   SessionListing,
   SessionSale,
   SessionReport,
-} from '../../src/electron';
+} from '@electron';
 import { MIGRATIONS } from './migrations';
 import { fuzzyMatch } from '../shared/fuzzy-match';
 import { SyncRepository } from './repositories/sync.repository';

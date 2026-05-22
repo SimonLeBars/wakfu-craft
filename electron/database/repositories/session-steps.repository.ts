@@ -7,7 +7,7 @@ import {
   SessionSale,
   SessionReport,
   SessionReportItem,
-} from '../../../src/electron';
+} from '@electron';
 import { PricesRepository } from './prices.repository';
 
 interface SessionPurchaseRow {

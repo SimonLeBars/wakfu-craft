@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { CraftSession, SessionItem, BoughtIngredient, RecipeTreeNode } from '../../../src/electron';
+import { CraftSession, SessionItem, BoughtIngredient, RecipeTreeNode } from '@electron';
 
 interface SessionItemDbRow {
   session_item_id: number;

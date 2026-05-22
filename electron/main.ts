@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
-import type { SessionStep } from '../src/electron';
+import type { SessionStep } from '@electron';
 import * as path from 'path';
 import { DatabaseService } from './database/db.service';
 import { registerOcrHandlers } from './ocr/ocr.handler';

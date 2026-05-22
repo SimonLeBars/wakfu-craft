@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { PriceEntry } from '../../../src/electron';
+import { PriceEntry } from '@electron';
 
 interface PriceRow {
   price: number;
@@ -21,7 +21,9 @@ export class PricesRepository {
 
   setPrice(itemId: number, price: number): void {
     this.db
-      .prepare(`INSERT INTO price_history (item_id, price, not_for_sale) VALUES (@item_id, @price, 0)`)
+      .prepare(
+        `INSERT INTO price_history (item_id, price, not_for_sale) VALUES (@item_id, @price, 0)`,
+      )
       .run({ item_id: itemId, price });
   }
 

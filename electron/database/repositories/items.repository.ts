@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { WakfuItem, Recipe, RecipeIngredient } from '../../../src/electron';
+import { WakfuItem, Recipe, RecipeIngredient } from '@electron';
 
 interface ItemRow {
   id: number;
