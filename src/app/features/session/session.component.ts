@@ -11,6 +11,7 @@ import { SessionStepIndicatorComponent } from './session-step-indicator/session-
 import { SessionPurchaseStepComponent } from './session-purchase-step/session-purchase-step.component';
 import { SessionCraftStepComponent } from './session-craft-step/session-craft-step.component';
 import { SessionListingStepComponent } from './session-listing-step/session-listing-step.component';
+import { SessionSaleStepComponent } from './session-sale-step/session-sale-step.component';
 
 @Component({
   selector: 'app-session',
@@ -24,6 +25,7 @@ import { SessionListingStepComponent } from './session-listing-step/session-list
     SessionPurchaseStepComponent,
     SessionCraftStepComponent,
     SessionListingStepComponent,
+    SessionSaleStepComponent,
   ],
   templateUrl: './session.component.html',
   styleUrl: './session.component.scss',

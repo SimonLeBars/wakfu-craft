@@ -1,0 +1,163 @@
+<div class="sale-step">
+  <div class="kpi-bar">
+    <div class="kpi-item">
+      <span class="kpi-label">Coût total</span>
+      <strong class="kpi-value kpi-value--negative">
+        @if (sessionService.report(); as r) {
+          {{ r.total_real_cost | number: '1.0-0' }} k
+        } @else {
+          —
+        }
+      </strong>
+    </div>
+    <div class="kpi-item">
+      <span class="kpi-label">Revenu attendu</span>
+      <strong class="kpi-value">{{ expectedRevenue() | number: '1.0-0' }} k</strong>
+    </div>
+    <div class="kpi-item">
+      <span class="kpi-label">Revenu réalisé</span>
+      <strong class="kpi-value">
+        @if (sessionService.report(); as r) {
+          {{ r.total_revenue | number: '1.0-0' }} k
+        } @else {
+          —
+        }
+      </strong>
+    </div>
+    <div class="kpi-item">
+      <span class="kpi-label">Bénéfice net</span>
+      <strong
+        class="kpi-value"
+        [class.kpi-value--positive]="(sessionService.report()?.net_profit ?? 0) > 0"
+        [class.kpi-value--negative]="(sessionService.report()?.net_profit ?? 0) < 0"
+      >
+        @if (sessionService.report(); as r) {
+          {{ r.net_profit | number: '1.0-0' }} k
+        } @else {
+          —
+        }
+      </strong>
+    </div>
+    <div class="kpi-item">
+      <span class="kpi-label">ROI</span>
+      <strong
+        class="kpi-value"
+        [class.kpi-value--positive]="(roi() ?? 0) > 0"
+        [class.kpi-value--negative]="(roi() ?? 0) < 0"
+      >
+        @if (roi(); as r) {
+          {{ r | number: '1.0-1' }}%
+        } @else {
+          —
+        }
+      </strong>
+    </div>
+  </div>
+
+  <div class="sale-list">
+    @for (node of sessionService.sessionItems(); track node.session_item_id) {
+      @let itemListings = listingsByItem().get(node.session_item_id) ?? [];
+      @let coverage = getCoverage(node.session_item_id);
+      @let sold = getQuantitySold(node.session_item_id);
+      @let listed = getQuantityListed(node.session_item_id);
+      @let daysToSell = getItemDaysToSell(node.session_item_id);
+      @let dailyGain = getItemDailyGain(node.session_item_id);
+
+      <div class="sale-item">
+        <div class="sale-item__header">
+          <div class="sale-item__info">
+            <span class="sale-item__name">
+              <app-copy-btn [text]="node.item_name['fr']" />
+            </span>
+            <span class="sale-item__level">
+              Niv. {{ node.item_level }}
+              <span class="badge-rarity" [style.color]="node.rarity | rarityColor">{{
+                node.rarity | rarityLabel
+              }}</span>
+            </span>
+          </div>
+          <div class="coverage" [class]="'coverage--' + coverage">{{ sold }} / {{ listed }}</div>
+        </div>
+
+        @if (itemListings.length > 0) {
+          <div class="listing-entries">
+            @for (listing of itemListings; track listing.id) {
+              <div class="listing-entry">
+                <span class="listing-entry__date">{{
+                  listing.listed_at | date: 'dd/MM HH:mm'
+                }}</span>
+                <span class="listing-entry__qty">× {{ listing.quantity }}</span>
+                <span class="listing-entry__price"
+                  >{{ listing.unit_price | number: '1.0-0' }} k</span
+                >
+                <span class="listing-entry__tax">{{ listing.tax_rate }}%</span>
+                <span class="listing-entry__sold">{{ listing.quantity_sold }} vendu</span>
+                <span
+                  class="listing-entry__remaining"
+                  [class.listing-entry__remaining--zero]="listing.quantity_remaining === 0"
+                  >{{ listing.quantity_remaining }} restant</span
+                >
+              </div>
+
+              @if (listing.quantity_remaining > 0) {
+                <div class="sale-form">
+                  <div class="form-field">
+                    <label [for]="'date-' + listing.id" class="form-label">Vente du</label>
+                    <input
+                      [id]="'date-' + listing.id"
+                      type="date"
+                      class="form-input form-input--date"
+                      [ngModel]="forms()[listing.id]?.soldAt ?? today"
+                      (ngModelChange)="updateForm(listing.id, 'soldAt', $event)"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label [for]="'qty-sale-' + listing.id" class="form-label">Qté vendue</label>
+                    <input
+                      [id]="'qty-sale-' + listing.id"
+                      type="number"
+                      class="form-input"
+                      min="1"
+                      [max]="listing.quantity_remaining"
+                      [ngModel]="forms()[listing.id]?.quantity ?? listing.quantity_remaining"
+                      (ngModelChange)="updateForm(listing.id, 'quantity', +$event)"
+                    />
+                  </div>
+                  <button
+                    class="btn-add"
+                    (click)="onAddSale(listing.id)"
+                    [disabled]="isAddDisabled(listing.id)"
+                    aria-label="Enregistrer la vente"
+                  >
+                    Enregistrer
+                  </button>
+                </div>
+              }
+            }
+          </div>
+        }
+
+        @if (daysToSell !== null || dailyGain !== null) {
+          <div class="item-stats">
+            @if (daysToSell !== null) {
+              <span class="item-stat">
+                <span class="item-stat__label">Durée vente</span>
+                <span class="item-stat__value">{{ formatDays(daysToSell) }}</span>
+              </span>
+            }
+            @if (dailyGain !== null) {
+              <span class="item-stat">
+                <span class="item-stat__label">Revenu net/j</span>
+                <span class="item-stat__value">{{ dailyGain | number: '1.0-0' }} k/j</span>
+              </span>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    @if (sessionService.sessionItems().length === 0) {
+      <div class="empty-state">Aucun item dans cette session</div>
+    }
+  </div>
+</div>

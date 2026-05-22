@@ -8,6 +8,8 @@ import {
   SessionPurchase,
   SessionCraftDone,
   SessionListing,
+  SessionSale,
+  SessionReport,
 } from '@electron';
 
 @Injectable({ providedIn: 'root' })
@@ -18,6 +20,8 @@ export class SessionService {
   readonly purchases = signal<SessionPurchase[]>([]);
   readonly craftsDone = signal<SessionCraftDone[]>([]);
   readonly listings = signal<SessionListing[]>([]);
+  readonly sales = signal<SessionSale[]>([]);
+  readonly report = signal<SessionReport | null>(null);
 
   readonly shoppingList = computed<ShoppingItem[]>(() => {
     const aggregated = new Map<number, ShoppingItem>();
@@ -102,6 +106,11 @@ export class SessionService {
       await this.loadCraftsDone();
       await this.loadListings();
     }
+    if (session.step === 'sale') {
+      await this.loadListings();
+      await this.loadSales();
+      await this.loadReport();
+    }
   }
 
   async setStep(step: SessionStep): Promise<void> {
@@ -155,6 +164,23 @@ export class SessionService {
   async deleteListing(id: number): Promise<void> {
     await window.electronAPI.sessions.deleteListing(id);
     await this.loadListings();
+  }
+
+  async loadSales(): Promise<void> {
+    const session = this.activeSession();
+    if (!session) return;
+    this.sales.set(await window.electronAPI.sessions.getSales(session.id));
+  }
+
+  async addSale(listingId: number, quantity: number, soldAt?: string): Promise<void> {
+    await window.electronAPI.sessions.addSale(listingId, quantity, soldAt);
+    await Promise.all([this.loadListings(), this.loadSales(), this.loadReport()]);
+  }
+
+  async loadReport(): Promise<void> {
+    const session = this.activeSession();
+    if (!session) return;
+    this.report.set(await window.electronAPI.sessions.getReport(session.id));
   }
 
   async upsertCraftDone(itemId: number, qty: number): Promise<void> {
