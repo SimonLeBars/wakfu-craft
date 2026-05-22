@@ -13,12 +13,14 @@ CREATE TABLE session_purchases (
   purchased_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- Crafts effectués (un seul enregistrement par item planifié, mis à jour par UPSERT)
+-- Crafts effectués (un seul enregistrement par item crafté, mis à jour par UPSERT)
 CREATE TABLE session_crafts_done (
   id               INTEGER PRIMARY KEY AUTOINCREMENT,
-  session_item_id  INTEGER NOT NULL UNIQUE REFERENCES craft_session_items(id) ON DELETE CASCADE,
+  session_id       INTEGER NOT NULL REFERENCES craft_sessions(id) ON DELETE CASCADE,
+  item_id          INTEGER NOT NULL REFERENCES items(id),
   quantity_crafted INTEGER NOT NULL,
-  crafted_at       TEXT NOT NULL DEFAULT (datetime('now'))
+  crafted_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(session_id, item_id)
 );
 
 -- Mises en vente (parent_listing_id renseigné lors d'une re-mise en vente)
