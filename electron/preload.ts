@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { GameLogEvent } from '@electron';
 
 // On expose uniquement les fonctions nécessaires à Angular
 // via window.electronAPI — jamais de nodeIntegration directe
@@ -39,6 +40,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('prices:getLatestPriceEntries', itemIds),
   getPriceHistory: (itemId: number) => ipcRenderer.invoke('prices:getHistory', itemId),
   deletePriceEntry: (id: number) => ipcRenderer.invoke('prices:deleteEntry', id),
+  settings: {
+    getLogPath: (): Promise<string | null> => ipcRenderer.invoke('settings:getLogPath'),
+    setLogPath: (p: string): Promise<void> => ipcRenderer.invoke('settings:setLogPath', p),
+    detectLogPath: (): Promise<string | null> => ipcRenderer.invoke('settings:detectLogPath'),
+    openLogFileDialog: (): Promise<string | null> =>
+      ipcRenderer.invoke('settings:openLogFileDialog'),
+  },
+  log: {
+    onGameEvent: (cb: (event: GameLogEvent) => void): void => {
+      ipcRenderer.removeAllListeners('log:gameEvent');
+      ipcRenderer.on('log:gameEvent', (_e, data: GameLogEvent) => cb(data));
+    },
+    removeGameEventListener: (): void => {
+      ipcRenderer.removeAllListeners('log:gameEvent');
+    },
+  },
   ocr: {
     openGridOverlay: (config?: unknown) => ipcRenderer.invoke('ocr:openGridOverlay', config),
     captureGrid: (grid: unknown) => ipcRenderer.invoke('ocr:captureGrid', grid),

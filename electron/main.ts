@@ -1,12 +1,15 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import type { SessionStep } from '@electron';
 import * as path from 'path';
+import { existsSync } from 'fs';
 import { DatabaseService } from './database/db.service';
+import { LogWatcher } from './log-watcher/log-watcher';
 import { registerOcrHandlers } from './ocr/ocr.handler';
 import url from 'url';
 
 let mainWindow: BrowserWindow | null = null;
 let db: DatabaseService;
+const logWatcher = new LogWatcher();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -41,6 +44,12 @@ app.whenReady().then(() => {
   registerIpcHandlers(db);
   registerOcrHandlers();
   createWindow();
+
+  // Démarre la surveillance du log si un chemin est déjà configuré
+  const savedPath = db.getLogPath();
+  if (mainWindow && savedPath && existsSync(savedPath)) {
+    logWatcher.start(savedPath, mainWindow);
+  }
 });
 
 app.on('window-all-closed', () => {
@@ -273,4 +282,41 @@ function registerIpcHandlers(db: DatabaseService): void {
   );
 
   ipcMain.handle('sessions:getReport', (_e, sessionId: number) => db.getSessionReport(sessionId));
+
+  // Settings — chemin du fichier de log
+  ipcMain.handle('settings:getLogPath', () => db.getLogPath());
+  ipcMain.handle('settings:setLogPath', (_e, p: string) => {
+    db.setLogPath(p);
+    if (mainWindow && existsSync(p)) logWatcher.start(p, mainWindow);
+    else logWatcher.stop();
+  });
+  ipcMain.handle('settings:detectLogPath', () => {
+    const candidate = path.join(
+      app.getPath('appData'),
+      'zaap',
+      'gamesLogs',
+      'wakfu',
+      'logs',
+      'wakfu_chat.log',
+    );
+    if (existsSync(candidate)) {
+      db.setLogPath(candidate);
+      if (mainWindow) logWatcher.start(candidate, mainWindow);
+      return candidate;
+    }
+    return null;
+  });
+  ipcMain.handle('settings:openLogFileDialog', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [{ name: 'Log', extensions: ['log'] }],
+    });
+    if (!result.canceled && result.filePaths[0]) {
+      const p = result.filePaths[0];
+      db.setLogPath(p);
+      if (mainWindow) logWatcher.start(p, mainWindow);
+      return p;
+    }
+    return null;
+  });
 }

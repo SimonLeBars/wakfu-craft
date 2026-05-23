@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, computed, signal } from '@angular/core';
 
 export type SyncStatus = 'idle' | 'checking' | 'downloading' | 'done' | 'error';
 
@@ -16,11 +16,33 @@ export interface VersionInfo {
 
 @Injectable({ providedIn: 'root' })
 export class SyncService {
-  // Signals réactifs — Angular 17+ style
   readonly status = signal<SyncStatus>('idle');
   readonly versionInfo = signal<VersionInfo | null>(null);
   readonly progressLog = signal<SyncProgress[]>([]);
   readonly error = signal<string | null>(null);
+
+  readonly logPath = signal<string | null>(null);
+  readonly logPathValid = computed(() => !!this.logPath());
+
+  async loadLogPath(): Promise<void> {
+    const p = await window.electronAPI.settings.getLogPath();
+    this.logPath.set(p);
+  }
+
+  async detectLogPath(): Promise<void> {
+    const p = await window.electronAPI.settings.detectLogPath();
+    this.logPath.set(p);
+  }
+
+  async setLogPath(p: string): Promise<void> {
+    await window.electronAPI.settings.setLogPath(p);
+    this.logPath.set(p);
+  }
+
+  async browseLogFile(): Promise<void> {
+    const p = await window.electronAPI.settings.openLogFileDialog();
+    if (p !== null) this.logPath.set(p);
+  }
 
   async checkVersion(): Promise<VersionInfo> {
     this.status.set('checking');
@@ -43,12 +65,14 @@ export class SyncService {
 
     // Écoute les événements de progression depuis Electron
     window.electronAPI.onSyncProgress((data: SyncProgress) => {
-      this.progressLog.update(log => [...log, data]);
+      this.progressLog.update((log) => [...log, data]);
     });
 
     try {
       const result = await window.electronAPI.downloadData();
-      this.versionInfo.update(v => v ? { ...v, needsUpdate: false, localVersion: result.version } : v);
+      this.versionInfo.update((v) =>
+        v ? { ...v, needsUpdate: false, localVersion: result.version } : v,
+      );
       this.status.set('done');
     } catch (e: unknown) {
       this.error.set(e instanceof Error ? e.message : String(e));

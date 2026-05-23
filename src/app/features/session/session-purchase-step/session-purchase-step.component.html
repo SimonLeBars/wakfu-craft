@@ -1,4 +1,12 @@
 <div class="purchase-step">
+  @if (lastAutoRecorded()) {
+    <div class="auto-record-banner" role="status">
+      Achat enregistré automatiquement&nbsp;: {{ lastAutoRecorded()!.quantity }}&times;
+      {{ lastAutoRecorded()!.itemName }}
+      — {{ lastAutoRecorded()!.unitPrice | number }} k/u
+    </div>
+  }
+
   <div class="purchase-list">
     @for (item of sessionService.shoppingList(); track item.item_id) {
       @let bought = getBought(item.item_id);

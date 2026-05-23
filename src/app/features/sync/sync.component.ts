@@ -11,11 +11,25 @@ import { SyncService } from '@services/sync.service';
 export class SyncComponent implements OnInit {
   protected readonly sync = inject(SyncService);
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.sync.checkVersion();
+    await this.sync.loadLogPath();
   }
 
   startSync(): void {
     this.sync.downloadData();
+  }
+
+  onLogPathInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.sync.setLogPath(value);
+  }
+
+  detectLogPath(): void {
+    this.sync.detectLogPath();
+  }
+
+  browseLogFile(): void {
+    this.sync.browseLogFile();
   }
 }

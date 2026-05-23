@@ -124,6 +124,14 @@ export class DatabaseService {
     this.setSetting('guild_xp_bonus', String(bonus));
   }
 
+  getLogPath(): string | null {
+    return this.getSetting('wakfu_log_path');
+  }
+
+  setLogPath(p: string): void {
+    this.setSetting('wakfu_log_path', p);
+  }
+
   importData(file: string, data: unknown[]): number {
     return this.sync.importData(file, data);
   }

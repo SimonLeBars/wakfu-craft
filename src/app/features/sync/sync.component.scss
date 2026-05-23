@@ -12,7 +12,9 @@
   padding: 0 24px;
 }
 
-h2 { margin-bottom: 24px; }
+h2 {
+  margin-bottom: 24px;
+}
 
 .version-card {
   @include card;
@@ -23,18 +25,31 @@ h2 { margin-bottom: 24px; }
   gap: 10px;
 }
 
-.version-row { @include flex-between; }
+.version-row {
+  @include flex-between;
+}
 
-.label { color: var(--text-dim); font-size: 0.9rem; }
-.value { font-weight: 600; }
+.label {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+.value {
+  font-weight: 600;
+}
 
 .badge {
   padding: 3px 10px;
   border-radius: var(--radius-pill);
   font-size: 0.8rem;
   font-weight: 600;
-  &--ok   { background: var(--success-bg); color: var(--success); }
-  &--warn { background: var(--warning-bg); color: var(--warning); }
+  &--ok {
+    background: var(--success-bg);
+    color: var(--success);
+  }
+  &--warn {
+    background: var(--warning-bg);
+    color: var(--warning);
+  }
 }
 
 .btn-sync {
@@ -48,8 +63,13 @@ h2 { margin-bottom: 24px; }
   cursor: pointer;
   margin-bottom: 20px;
   transition: opacity 0.2s;
-  &:disabled          { opacity: 0.5; cursor: not-allowed; }
-  &:not(:disabled):hover { opacity: 0.85; }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  &:not(:disabled):hover {
+    opacity: 0.85;
+  }
 }
 
 .progress-log {
@@ -66,13 +86,52 @@ h2 { margin-bottom: 24px; }
   font-size: 0.85rem;
   padding: 4px 0;
   border-bottom: 1px solid #222;
-  &--imported    { color: var(--success); }
-  &--cached      { color: var(--cached); }
-  &--downloaded  { color: var(--downloaded); }
-  &--downloading { color: var(--warning); }
+  &--imported {
+    color: var(--success);
+  }
+  &--cached {
+    color: var(--cached);
+  }
+  &--downloaded {
+    color: var(--downloaded);
+  }
+  &--downloading {
+    color: var(--warning);
+  }
 }
 
-.log-file { font-family: monospace; }
+.log-file {
+  font-family: monospace;
+}
+
+.log-config-card {
+  @include card;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}
+
+.log-path-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+
+  input[type='text'] {
+    flex: 1;
+    padding: 7px 10px;
+    @include input-base(var(--bg-surface));
+  }
+
+  button {
+    @include btn-primary;
+    white-space: nowrap;
+  }
+}
 
 .error-box {
   background: var(--error-bg);

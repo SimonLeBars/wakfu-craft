@@ -178,6 +178,14 @@ export interface SessionReport {
   items: SessionReportItem[];
 }
 
+export interface GameLogEvent {
+  itemName: string;
+  quantity: number;
+  totalKamas: number;
+  unitPrice: number;
+  timestamp: string;
+}
+
 export interface GridConfig {
   x: number;
   y: number;
@@ -241,6 +249,16 @@ export interface ElectronAPI {
   getLatestPriceEntries: (itemIds: number[]) => Promise<Record<number, PriceEntry>>;
   getPriceHistory: (itemId: number) => Promise<PriceEntry[]>;
   deletePriceEntry: (id: number) => Promise<void>;
+  settings: {
+    getLogPath: () => Promise<string | null>;
+    setLogPath: (p: string) => Promise<void>;
+    detectLogPath: () => Promise<string | null>;
+    openLogFileDialog: () => Promise<string | null>;
+  };
+  log: {
+    onGameEvent: (callback: (event: GameLogEvent) => void) => void;
+    removeGameEventListener: () => void;
+  };
   ocr: {
     openGridOverlay: (config?: GridConfig) => Promise<GridConfig | null>;
     captureGrid: (grid: GridConfig) => Promise<GridRow[] | null>;

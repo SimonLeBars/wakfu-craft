@@ -4,12 +4,15 @@ import {
   inject,
   computed,
   signal,
+  effect,
+  untracked,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe, DatePipe } from '@angular/common';
 import { SessionService } from '@services/session.service';
-import { SessionPurchase } from '@electron';
+import { LogWatcherService } from '@services/log-watcher.service';
+import { SessionPurchase, GameLogEvent } from '@electron';
 import { CopyBtnComponent } from '@shared/components/copy-btn.component';
 import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
 import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
@@ -28,6 +31,7 @@ interface PurchaseForm {
 })
 export class SessionPurchaseStepComponent implements OnInit {
   protected readonly sessionService = inject(SessionService);
+  private readonly logWatcher = inject(LogWatcherService);
 
   protected readonly purchasesByItem = computed(() =>
     this.sessionService.purchases().reduce((map, p) => {
@@ -41,6 +45,51 @@ export class SessionPurchaseStepComponent implements OnInit {
   );
 
   protected readonly forms = signal<Record<number, PurchaseForm>>({});
+
+  protected readonly lastAutoRecorded = signal<GameLogEvent | null>(null);
+  private autoRecordTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private readonly matchedLogEvents = computed(() =>
+    this.logWatcher
+      .recentPurchases()
+      .filter((e) =>
+        this.sessionService.shoppingList().some((i) => i.item_name['fr'] === e.itemName),
+      ),
+  );
+
+  constructor() {
+    effect(() => {
+      const events = this.matchedLogEvents();
+      if (events.length === 0) return;
+      // untracked() évite qu'Angular suive les écritures de signaux
+      // (dismiss, forms.update) déclenchées depuis cet effect
+      untracked(() => void this.processAutoEvents([...events]));
+    });
+  }
+
+  private async processAutoEvents(events: GameLogEvent[]): Promise<void> {
+    for (const event of events) {
+      const item = this.sessionService
+        .shoppingList()
+        .find((i) => i.item_name['fr'] === event.itemName);
+      if (!item) continue;
+      this.logWatcher.dismiss(event);
+      await this.sessionService.addPurchase(item.item_id, event.unitPrice, event.quantity);
+      const bought = this.getBought(item.item_id);
+      const remaining = Math.max(1, item.total_quantity - bought);
+      this.forms.update((f) => ({
+        ...f,
+        [item.item_id]: { qty: remaining, price: f[item.item_id]?.price ?? event.unitPrice },
+      }));
+      this.showAutoRecordedBanner(event);
+    }
+  }
+
+  private showAutoRecordedBanner(event: GameLogEvent): void {
+    if (this.autoRecordTimer !== null) clearTimeout(this.autoRecordTimer);
+    this.lastAutoRecorded.set(event);
+    this.autoRecordTimer = setTimeout(() => this.lastAutoRecorded.set(null), 5000);
+  }
 
   async ngOnInit(): Promise<void> {
     await this.sessionService.loadPurchases();
