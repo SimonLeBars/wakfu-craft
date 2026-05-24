@@ -10,7 +10,7 @@ const RAMASSE_ITEM_RE =
 
 // XP gained from any profession (craft, harvest, etc.); level-up optional
 const XP_LINE_RE =
-  /^(\d{2}:\d{2}:\d{2}),\d+ - \[Information \(jeu\)\] (.+?) : \+([\d \s]+) points d'XP\.(?:\s+\+(\d+) niveau\.)? Prochain niveau dans/u;
+  /^(\d{2}:\d{2}:\d{2}),\d+ - \[Information \(jeu\)\] (.+?) : \+([\d \s]+) points d'XP\.(?:\s+\+(\d+) niveau\.)?\s+Prochain niveau dans/u;
 
 // Ingredient consumed during craft ("Nx" distinguishes it from kamas loss)
 const PERDU_ITEM_RE =
