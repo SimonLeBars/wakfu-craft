@@ -104,7 +104,7 @@ export class SessionPurchaseStepComponent implements OnInit {
       const remaining = Math.max(1, item.total_quantity - bought);
       this.forms.update((f) => ({
         ...f,
-        [item.item_id]: { qty: remaining, price: f[item.item_id]?.price ?? event.unitPrice },
+        [item.item_id]: { qty: remaining, price: event.unitPrice },
       }));
       this.showAutoRecordedBanner(event);
     }
