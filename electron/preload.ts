@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { GameLogEvent } from '@electron';
+import type { GameLogEvent, CraftLogEvent, XpLogEvent } from '@electron';
 
 // On expose uniquement les fonctions nécessaires à Angular
 // via window.electronAPI — jamais de nodeIntegration directe
@@ -52,8 +52,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeAllListeners('log:gameEvent');
       ipcRenderer.on('log:gameEvent', (_e, data: GameLogEvent) => cb(data));
     },
+    onCraftEvent: (cb: (event: CraftLogEvent) => void): void => {
+      ipcRenderer.removeAllListeners('log:craftEvent');
+      ipcRenderer.on('log:craftEvent', (_e, data: CraftLogEvent) => cb(data));
+    },
+    onXpEvent: (cb: (event: XpLogEvent) => void): void => {
+      ipcRenderer.removeAllListeners('log:xpEvent');
+      ipcRenderer.on('log:xpEvent', (_e, data: XpLogEvent) => cb(data));
+    },
     removeGameEventListener: (): void => {
       ipcRenderer.removeAllListeners('log:gameEvent');
+    },
+    removeCraftEventListener: (): void => {
+      ipcRenderer.removeAllListeners('log:craftEvent');
+    },
+    removeXpEventListener: (): void => {
+      ipcRenderer.removeAllListeners('log:xpEvent');
     },
   },
   ocr: {

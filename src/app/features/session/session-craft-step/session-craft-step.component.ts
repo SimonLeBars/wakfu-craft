@@ -4,19 +4,23 @@ import {
   inject,
   computed,
   signal,
+  effect,
+  untracked,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { SessionService } from '@services/session.service';
 import { ProfessionProfileService } from '@services/profession-profile.service';
+import { LogWatcherService } from '@services/log-watcher.service';
+import { CraftLogEvent } from '@electron';
 import { CopyBtnComponent } from '@shared/components/copy-btn.component';
 import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
 import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
 
 @Component({
   selector: 'app-session-craft-step',
-  imports: [FormsModule, DatePipe, CopyBtnComponent, RarityColorPipe, RarityLabelPipe],
+  imports: [FormsModule, DatePipe, DecimalPipe, CopyBtnComponent, RarityColorPipe, RarityLabelPipe],
   templateUrl: './session-craft-step.component.html',
   styleUrl: './session-craft-step.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -24,6 +28,59 @@ import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
 export class SessionCraftStepComponent implements OnInit {
   protected readonly sessionService = inject(SessionService);
   protected readonly professionService = inject(ProfessionProfileService);
+  private readonly logWatcher = inject(LogWatcherService);
+
+  protected readonly lastAutoCrafted = signal<CraftLogEvent | null>(null);
+  private autoCraftTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private readonly matchedCraftEvents = computed(() =>
+    this.logWatcher
+      .recentCrafts()
+      .filter((e) =>
+        this.sessionService.craftOrder().some((n) => n.item_name['fr'] === e.itemName),
+      ),
+  );
+
+  constructor() {
+    effect(() => {
+      const levels = this.professionService.levels();
+      const cats = this.relevantCategories();
+      untracked(() => {
+        this.levelForms.update((f) => {
+          const next = { ...f };
+          for (const cat of cats) next[cat.id] = levels[cat.id] ?? 1;
+          return next;
+        });
+      });
+    });
+
+    effect(() => {
+      const events = this.matchedCraftEvents();
+      if (events.length === 0) return;
+      untracked(() => void this.processAutoCrafts([...events]));
+    });
+  }
+
+  private async processAutoCrafts(events: CraftLogEvent[]): Promise<void> {
+    for (const event of events) {
+      const node = this.sessionService
+        .craftOrder()
+        .find((n) => n.item_name['fr'] === event.itemName);
+      if (!node) continue;
+      this.logWatcher.dismissCraft(event);
+      const current = this.craftsDoneMap().get(node.item_id);
+      const newQty = (current?.quantity_crafted ?? 0) + event.quantity;
+      await this.sessionService.upsertCraftDone(node.item_id, newQty);
+      this.forms.update((f) => ({ ...f, [node.item_id]: newQty }));
+      this.showAutoCraftBanner(event);
+    }
+  }
+
+  private showAutoCraftBanner(event: CraftLogEvent): void {
+    if (this.autoCraftTimer !== null) clearTimeout(this.autoCraftTimer);
+    this.lastAutoCrafted.set(event);
+    this.autoCraftTimer = setTimeout(() => this.lastAutoCrafted.set(null), 5000);
+  }
 
   protected readonly craftsDoneMap = computed(() =>
     this.sessionService.craftsDone().reduce((map, c) => {

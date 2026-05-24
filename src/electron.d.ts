@@ -186,6 +186,22 @@ export interface GameLogEvent {
   timestamp: string;
 }
 
+export interface CraftLogEvent {
+  itemName: string;
+  quantity: number;
+  profession: string;
+  xpGained: number;
+  levelsGained: number;
+  timestamp: string;
+}
+
+export interface XpLogEvent {
+  profession: string;
+  xpGained: number;
+  levelsGained: number;
+  timestamp: string;
+}
+
 export interface GridConfig {
   x: number;
   y: number;
@@ -257,7 +273,11 @@ export interface ElectronAPI {
   };
   log: {
     onGameEvent: (callback: (event: GameLogEvent) => void) => void;
+    onCraftEvent: (callback: (event: CraftLogEvent) => void) => void;
+    onXpEvent: (callback: (event: XpLogEvent) => void) => void;
     removeGameEventListener: () => void;
+    removeCraftEventListener: () => void;
+    removeXpEventListener: () => void;
   };
   ocr: {
     openGridOverlay: (config?: GridConfig) => Promise<GridConfig | null>;

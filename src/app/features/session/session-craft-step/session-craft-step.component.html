@@ -1,4 +1,14 @@
 <div class="craft-step">
+  @if (lastAutoCrafted()) {
+    <div class="auto-craft-banner" role="status">
+      Craft enregistré&nbsp;: {{ lastAutoCrafted()!.quantity }}&times;
+      {{ lastAutoCrafted()!.itemName }}
+      — {{ lastAutoCrafted()!.xpGained | number }}&nbsp;XP
+      @if (lastAutoCrafted()!.levelsGained > 0) {
+        (+{{ lastAutoCrafted()!.levelsGained }}&nbsp;niv.)
+      }
+    </div>
+  }
   <div class="craft-list">
     @for (node of sessionService.craftOrder(); track node.item_id) {
       @let done = craftsDoneMap().get(node.item_id);

@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import { BrowserWindow } from 'electron';
-import { parseLine, PendingKamas } from './log-parser';
+import { parseLine, PendingKamas, PendingCraft } from './log-parser';
 
 // Polling interval en ms — fs.watch est peu fiable sur Windows pour les
 // fichiers écrits par des processus Java (Wakfu).
@@ -9,12 +9,14 @@ const POLL_INTERVAL_MS = 500;
 export class LogWatcher {
   private watchedPath: string | null = null;
   private fileOffset = 0;
-  private pending: PendingKamas | null = null;
+  private pendingKamas: PendingKamas | null = null;
+  private pendingCraft: PendingCraft | null = null;
   private remainder = '';
 
   start(logPath: string, win: BrowserWindow): void {
     this.stop();
-    this.pending = null;
+    this.pendingKamas = null;
+    this.pendingCraft = null;
     this.remainder = '';
     this.watchedPath = logPath;
 
@@ -50,7 +52,8 @@ export class LogWatcher {
     if (stat.size < this.fileOffset) {
       this.fileOffset = 0;
       this.remainder = '';
-      this.pending = null;
+      this.pendingKamas = null;
+      this.pendingCraft = null;
     }
 
     const bytesToRead = stat.size - this.fileOffset;
@@ -70,11 +73,12 @@ export class LogWatcher {
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed) continue;
-      const result = parseLine(trimmed, this.pending);
-      this.pending = result.pending;
-      if (result.emit) {
-        win.webContents.send('log:gameEvent', result.emit);
-      }
+      const result = parseLine(trimmed, this.pendingKamas, this.pendingCraft);
+      this.pendingKamas = result.pendingKamas;
+      this.pendingCraft = result.pendingCraft;
+      if (result.emit) win.webContents.send('log:gameEvent', result.emit);
+      if (result.emitCraft) win.webContents.send('log:craftEvent', result.emitCraft);
+      if (result.emitXp) win.webContents.send('log:xpEvent', result.emitXp);
     }
   }
 }

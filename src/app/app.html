@@ -1,10 +1,19 @@
+@if (lastLevelUp()) {
+  <div class="level-up-banner" role="status">
+    {{ lastLevelUp()!.profession }} — Niveau +{{ lastLevelUp()!.levelsGained }} ! ({{
+      lastLevelUp()!.xpGained | number
+    }}
+    XP)
+  </div>
+}
+
 <nav class="app-nav">
-  <a routerLink="/sync"  routerLinkActive="active">🔄 Sync</a>
+  <a routerLink="/sync" routerLinkActive="active">🔄 Sync</a>
   <a routerLink="/items" routerLinkActive="active">🗡️ Items</a>
   <a routerLink="/session" routerLinkActive="active">🛒 Session</a>
-  <a routerLink="/xp"      routerLinkActive="active">⚡ XP</a>
-  <a routerLink="/profit"  routerLinkActive="active">💰 Profit</a>
+  <a routerLink="/xp" routerLinkActive="active">⚡ XP</a>
+  <a routerLink="/profit" routerLinkActive="active">💰 Profit</a>
   <a routerLink="/profile" routerLinkActive="active">🧑‍🏭 Profil</a>
-  <a routerLink="/ocr"     routerLinkActive="active">🔍 Scan</a>
+  <a routerLink="/ocr" routerLinkActive="active">🔍 Scan</a>
 </nav>
 <router-outlet />

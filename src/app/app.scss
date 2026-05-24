@@ -1,3 +1,19 @@
+.level-up-banner {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
 .app-nav {
   height: var(--nav-height);
 
@@ -13,7 +29,12 @@
     font-size: 0.9rem;
     transition: color var(--transition);
 
-    &:hover  { color: var(--text); }
-    &.active { color: var(--text); border-bottom: 2px solid var(--accent); }
+    &:hover {
+      color: var(--text);
+    }
+    &.active {
+      color: var(--text);
+      border-bottom: 2px solid var(--accent);
+    }
   }
 }
