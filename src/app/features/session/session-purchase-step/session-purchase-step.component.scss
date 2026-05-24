@@ -83,6 +83,20 @@
   }
 }
 
+.cost-summary {
+  display: flex;
+  gap: 12px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding: 4px 0;
+
+  &__total {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-left: auto;
+  }
+}
+
 .purchase-entries {
   display: flex;
   flex-direction: column;

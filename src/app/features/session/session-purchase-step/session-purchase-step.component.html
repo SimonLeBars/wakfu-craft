@@ -57,6 +57,25 @@
           </div>
         }
 
+        @let costs = itemCosts().get(item.item_id);
+        @if (costs && (costs.spent > 0 || costs.remainingEst > 0)) {
+          <div class="cost-summary">
+            @if (costs.spent > 0) {
+              <span class="cost-summary__spent"
+                >Dépensé&nbsp;: {{ costs.spent | number: '1.0-0' }}&nbsp;k</span
+              >
+            }
+            @if (costs.remainingEst > 0) {
+              <span class="cost-summary__remaining"
+                >Restant est.&nbsp;: {{ costs.remainingEst | number: '1.0-0' }}&nbsp;k</span
+              >
+            }
+            <span class="cost-summary__total"
+              >Total est.&nbsp;: {{ costs.total | number: '1.0-0' }}&nbsp;k</span
+            >
+          </div>
+        }
+
         <div class="purchase-form">
           <div class="form-field">
             <label [for]="'qty-' + item.item_id" class="form-label">Quantité achetée</label>
@@ -95,6 +114,8 @@
       <div class="empty-state">Aucun ingrédient à acheter</div>
     }
   </div>
+
+  <app-session-profitability />
 
   <div class="purchase-footer">
     <div class="purchase-footer__total">

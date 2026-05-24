@@ -16,6 +16,7 @@ import { SessionPurchase, GameLogEvent } from '@electron';
 import { CopyBtnComponent } from '@shared/components/copy-btn.component';
 import { RarityColorPipe } from '@shared/pipes/rarity-color.pipe';
 import { RarityLabelPipe } from '@shared/pipes/rarity-label.pipe';
+import { SessionProfitabilityComponent } from '../session-profitability/session-profitability.component';
 
 interface PurchaseForm {
   qty: number;
@@ -24,7 +25,15 @@ interface PurchaseForm {
 
 @Component({
   selector: 'app-session-purchase-step',
-  imports: [FormsModule, DecimalPipe, DatePipe, CopyBtnComponent, RarityColorPipe, RarityLabelPipe],
+  imports: [
+    FormsModule,
+    DecimalPipe,
+    DatePipe,
+    CopyBtnComponent,
+    RarityColorPipe,
+    RarityLabelPipe,
+    SessionProfitabilityComponent,
+  ],
   templateUrl: './session-purchase-step.component.html',
   styleUrl: './session-purchase-step.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,6 +54,22 @@ export class SessionPurchaseStepComponent implements OnInit {
   );
 
   protected readonly forms = signal<Record<number, PurchaseForm>>({});
+
+  protected readonly itemCosts = computed(() => {
+    const forms = this.forms();
+    const byItem = this.purchasesByItem();
+    return new Map(
+      this.sessionService.shoppingList().map((item) => {
+        const purchases = byItem.get(item.item_id) ?? [];
+        const spent = purchases.reduce((s, p) => s + p.unit_price * p.quantity, 0);
+        const bought = purchases.reduce((s, p) => s + p.quantity, 0);
+        const remaining = Math.max(0, item.total_quantity - bought);
+        const lastPrice = forms[item.item_id]?.price ?? 0;
+        const remainingEst = remaining * lastPrice;
+        return [item.item_id, { spent, remainingEst, total: spent + remainingEst }];
+      }),
+    );
+  });
 
   protected readonly lastAutoRecorded = signal<GameLogEvent | null>(null);
   private autoRecordTimer: ReturnType<typeof setTimeout> | null = null;
