@@ -1,7 +1,7 @@
 <div class="sale-step">
   <div class="kpi-bar">
     <div class="kpi-item">
-      <span class="kpi-label">Coût total</span>
+      <span class="kpi-label">Coût ressources</span>
       <strong class="kpi-value kpi-value--negative">
         @if (sessionService.report(); as r) {
           {{ r.total_real_cost | number: '1.0-0' }} k
@@ -11,8 +11,56 @@
       </strong>
     </div>
     <div class="kpi-item">
+      <span class="kpi-label">Coût taxes</span>
+      <strong class="kpi-value kpi-value--negative">
+        @if (sessionService.report(); as r) {
+          {{ r.total_tax_paid | number: '1.0-0' }} k
+        } @else {
+          —
+        }
+      </strong>
+    </div>
+    <div class="kpi-item kpi-item--separator">
+      <span class="kpi-label">Coût total</span>
+      <strong class="kpi-value kpi-value--negative">
+        @if (sessionService.report(); as r) {
+          {{ r.total_real_cost + r.total_tax_paid | number: '1.0-0' }} k
+        } @else {
+          —
+        }
+      </strong>
+    </div>
+    <div class="kpi-item">
       <span class="kpi-label">Revenu attendu</span>
-      <strong class="kpi-value">{{ expectedRevenue() | number: '1.0-0' }} k</strong>
+      <strong class="kpi-value">{{ expectedGrossRevenue() | number: '1.0-0' }} k</strong>
+    </div>
+    <div class="kpi-item">
+      <span class="kpi-label">Bénéfice net attendu</span>
+      <strong
+        class="kpi-value"
+        [class.kpi-value--positive]="(expectedNetProfit() ?? 0) > 0"
+        [class.kpi-value--negative]="(expectedNetProfit() ?? 0) < 0"
+      >
+        @if (expectedNetProfit(); as v) {
+          {{ v | number: '1.0-0' }} k
+        } @else {
+          —
+        }
+      </strong>
+    </div>
+    <div class="kpi-item kpi-item--separator">
+      <span class="kpi-label">ROI attendu</span>
+      <strong
+        class="kpi-value"
+        [class.kpi-value--positive]="(expectedRoi() ?? 0) > 0"
+        [class.kpi-value--negative]="(expectedRoi() ?? 0) < 0"
+      >
+        @if (expectedRoi(); as v) {
+          {{ v | number: '1.0-1' }}%
+        } @else {
+          —
+        }
+      </strong>
     </div>
     <div class="kpi-item">
       <span class="kpi-label">Revenu réalisé</span>
@@ -45,8 +93,8 @@
         [class.kpi-value--positive]="(roi() ?? 0) > 0"
         [class.kpi-value--negative]="(roi() ?? 0) < 0"
       >
-        @if (roi(); as r) {
-          {{ r | number: '1.0-1' }}%
+        @if (roi(); as v) {
+          {{ v | number: '1.0-1' }}%
         } @else {
           —
         }
@@ -82,7 +130,9 @@
         @if (itemListings.length > 0) {
           <div class="listing-entries">
             @for (listing of itemListings; track listing.id) {
-              <div class="listing-entry">
+              @let isRelisted =
+                relistedListingIds().has(listing.id) && listing.quantity_remaining === 0;
+              <div class="listing-entry" [class.listing-entry--relisted]="isRelisted">
                 <span class="listing-entry__date">{{
                   listing.listed_at | date: 'dd/MM HH:mm'
                 }}</span>
@@ -97,6 +147,9 @@
                   [class.listing-entry__remaining--zero]="listing.quantity_remaining === 0"
                   >{{ listing.quantity_remaining }} restant</span
                 >
+                @if (isRelisted) {
+                  <span class="listing-entry__relist-badge">↺ remis en vente</span>
+                }
               </div>
 
               @if (listing.quantity_remaining > 0) {
@@ -131,7 +184,78 @@
                   >
                     Enregistrer
                   </button>
+                  <button
+                    class="btn-relist-toggle"
+                    [class.btn-relist-toggle--active]="!!relistForms()[listing.id]"
+                    (click)="
+                      relistForms()[listing.id]
+                        ? closeRelistForm(listing.id)
+                        : openRelistForm(listing)
+                    "
+                    [attr.aria-expanded]="!!relistForms()[listing.id]"
+                    aria-label="Remettre en vente à un nouveau prix"
+                  >
+                    ↺ Remettre en vente
+                  </button>
                 </div>
+
+                @if (relistForms()[listing.id]; as rf) {
+                  <div class="relist-form">
+                    <div class="form-field">
+                      <label [for]="'relist-price-' + listing.id" class="form-label"
+                        >Nouveau prix (k)</label
+                      >
+                      <input
+                        [id]="'relist-price-' + listing.id"
+                        type="number"
+                        class="form-input"
+                        min="1"
+                        [ngModel]="rf.unitPrice"
+                        (ngModelChange)="updateRelistForm(listing.id, 'unitPrice', +$event)"
+                      />
+                    </div>
+                    <div class="form-field">
+                      <label [for]="'relist-qty-' + listing.id" class="form-label">Quantité</label>
+                      <input
+                        [id]="'relist-qty-' + listing.id"
+                        type="number"
+                        class="form-input"
+                        min="1"
+                        [max]="listing.quantity_remaining"
+                        [ngModel]="rf.quantity"
+                        (ngModelChange)="updateRelistForm(listing.id, 'quantity', +$event)"
+                      />
+                    </div>
+                    <div class="form-field">
+                      <label [for]="'relist-tax-' + listing.id" class="form-label">Taxe %</label>
+                      <input
+                        [id]="'relist-tax-' + listing.id"
+                        type="number"
+                        class="form-input form-input--tax"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        [ngModel]="rf.taxRate"
+                        (ngModelChange)="updateRelistForm(listing.id, 'taxRate', +$event)"
+                      />
+                    </div>
+                    <button
+                      class="btn-relist"
+                      (click)="onRelist(listing.id, listing.session_item_id)"
+                      [disabled]="isRelistDisabled(listing.id)"
+                      aria-label="Confirmer la remise en vente"
+                    >
+                      Confirmer
+                    </button>
+                    <button
+                      class="btn-cancel"
+                      (click)="closeRelistForm(listing.id)"
+                      aria-label="Annuler la remise en vente"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                }
               }
             }
           </div>

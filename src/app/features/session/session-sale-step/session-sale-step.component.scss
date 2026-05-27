@@ -23,6 +23,12 @@
   flex-direction: column;
   gap: 2px;
   min-width: 110px;
+
+  &--separator {
+    border-right: 1px solid var(--border);
+    padding-right: 16px;
+    margin-right: 4px;
+  }
 }
 
 .kpi-label {
@@ -117,6 +123,18 @@
   gap: 8px;
   font-size: 0.8rem;
 
+  &--relisted {
+    .listing-entry__date,
+    .listing-entry__qty,
+    .listing-entry__price,
+    .listing-entry__tax,
+    .listing-entry__sold,
+    .listing-entry__remaining {
+      opacity: 0.45;
+      text-decoration: line-through;
+    }
+  }
+
   &__date {
     color: var(--text-muted);
     flex: 0 0 90px;
@@ -141,6 +159,14 @@
       color: var(--text-dim);
       text-decoration: line-through;
     }
+  }
+
+  &__relist-badge {
+    margin-left: auto;
+    font-size: 0.72rem;
+    color: var(--accent);
+    opacity: 0.75;
+    flex-shrink: 0;
   }
 }
 
@@ -188,6 +214,62 @@
       cursor: not-allowed;
     }
   }
+}
+
+.btn-relist-toggle {
+  @include btn-icon;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  margin-left: auto;
+  white-space: nowrap;
+
+  &--active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
+.relist-form {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--accent) 40%, transparent);
+
+  .form-input {
+    @include input-base(var(--bg-surface));
+    padding: 6px 8px;
+    width: 80px;
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+    }
+
+    &--tax {
+      width: 58px;
+    }
+  }
+}
+
+.btn-relist {
+  @include btn-primary;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.btn-cancel {
+  @include btn-icon;
+  padding: 6px 10px;
+  font-size: 0.85rem;
 }
 
 .item-stats {

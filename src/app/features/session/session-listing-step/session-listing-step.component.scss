@@ -82,6 +82,17 @@
   gap: 8px;
   font-size: 0.8rem;
 
+  &--relisted {
+    .listing-entry__date,
+    .listing-entry__qty,
+    .listing-entry__price,
+    .listing-entry__tax,
+    .listing-entry__total {
+      opacity: 0.45;
+      text-decoration: line-through;
+    }
+  }
+
   &__date {
     color: var(--text-muted);
     flex: 0 0 90px;
@@ -103,6 +114,14 @@
   &__total {
     flex: 1;
     color: var(--text-muted);
+  }
+
+  &__relist-badge {
+    margin-left: auto;
+    font-size: 0.72rem;
+    color: var(--accent);
+    opacity: 0.75;
+    flex-shrink: 0;
   }
 
   .btn-delete {

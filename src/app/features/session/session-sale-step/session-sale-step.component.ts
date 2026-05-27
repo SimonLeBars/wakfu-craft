@@ -19,6 +19,12 @@ interface SaleForm {
   soldAt: string;
 }
 
+interface RelistForm {
+  unitPrice: number;
+  quantity: number;
+  taxRate: number;
+}
+
 @Component({
   selector: 'app-session-sale-step',
   imports: [FormsModule, DecimalPipe, DatePipe, CopyBtnComponent, RarityColorPipe, RarityLabelPipe],
@@ -35,6 +41,8 @@ export class SessionSaleStepComponent implements OnInit {
   })();
 
   protected readonly forms = signal<Partial<Record<number, SaleForm>>>({});
+  protected readonly relistForms = signal<Partial<Record<number, RelistForm>>>({});
+  private readonly defaultTaxRate = signal<number>(3);
 
   protected readonly listingsByItem = computed(() =>
     this.sessionService.listings().reduce((map, l) => {
@@ -43,6 +51,14 @@ export class SessionSaleStepComponent implements OnInit {
     }, new Map<number, SessionListing[]>()),
   );
 
+  protected readonly relistedListingIds = computed(() => {
+    const ids = new Set<number>();
+    for (const l of this.sessionService.listings()) {
+      if (l.parent_listing_id !== null) ids.add(l.parent_listing_id);
+    }
+    return ids;
+  });
+
   private readonly sessionItemIdByItemId = computed(() =>
     this.sessionService.sessionItems().reduce((map, node) => {
       map.set(node.item_id, node.session_item_id);
@@ -50,11 +66,23 @@ export class SessionSaleStepComponent implements OnInit {
     }, new Map<number, number>()),
   );
 
-  protected readonly expectedRevenue = computed(() =>
-    this.sessionService
-      .listings()
-      .reduce((sum, l) => sum + l.unit_price * l.quantity * (1 - l.tax_rate / 100), 0),
+  protected readonly expectedGrossRevenue = computed(() =>
+    this.sessionService.listings().reduce((sum, l) => sum + l.unit_price * l.quantity_remaining, 0),
   );
+
+  protected readonly expectedNetProfit = computed(() => {
+    const r = this.sessionService.report();
+    if (!r) return null;
+    return r.total_revenue + this.expectedGrossRevenue() - r.total_real_cost - r.total_tax_paid;
+  });
+
+  protected readonly expectedRoi = computed(() => {
+    const r = this.sessionService.report();
+    if (!r || r.total_real_cost === 0) return null;
+    const np = this.expectedNetProfit();
+    if (np === null) return null;
+    return (np / r.total_real_cost) * 100;
+  });
 
   protected readonly roi = computed(() => {
     const r = this.sessionService.report();
@@ -83,11 +111,13 @@ export class SessionSaleStepComponent implements OnInit {
   });
 
   async ngOnInit(): Promise<void> {
-    await Promise.all([
+    const [taxRate] = await Promise.all([
+      window.electronAPI.sessions.getLastTaxRate(),
       this.sessionService.loadListings(),
       this.sessionService.loadSales(),
       this.sessionService.loadReport(),
     ]);
+    this.defaultTaxRate.set(taxRate);
     const initial: Partial<Record<number, SaleForm>> = {};
     for (const listing of this.sessionService.listings()) {
       if (listing.quantity_remaining > 0) {
@@ -105,7 +135,9 @@ export class SessionSaleStepComponent implements OnInit {
   }
 
   protected getQuantityListed(sessionItemId: number): number {
-    return (this.listingsByItem().get(sessionItemId) ?? []).reduce((s, l) => s + l.quantity, 0);
+    return (this.listingsByItem().get(sessionItemId) ?? [])
+      .filter((l) => l.parent_listing_id === null)
+      .reduce((s, l) => s + l.quantity, 0);
   }
 
   protected getCoverage(sessionItemId: number): 'full' | 'partial' | 'none' {
@@ -165,6 +197,53 @@ export class SessionSaleStepComponent implements OnInit {
         return next;
       });
     }
+  }
+
+  protected openRelistForm(listing: SessionListing): void {
+    this.relistForms.update((f) => ({
+      ...f,
+      [listing.id]: {
+        unitPrice: listing.unit_price,
+        quantity: listing.quantity_remaining,
+        taxRate: this.defaultTaxRate(),
+      },
+    }));
+  }
+
+  protected closeRelistForm(listingId: number): void {
+    this.relistForms.update((f) => {
+      const next = { ...f };
+      delete next[listingId];
+      return next;
+    });
+  }
+
+  protected updateRelistForm(listingId: number, field: keyof RelistForm, value: number): void {
+    this.relistForms.update((f) => ({
+      ...f,
+      [listingId]: {
+        ...(f[listingId] ?? { unitPrice: 0, quantity: 1, taxRate: this.defaultTaxRate() }),
+        [field]: value,
+      },
+    }));
+  }
+
+  protected isRelistDisabled(listingId: number): boolean {
+    const form = this.relistForms()[listingId];
+    return !form || form.unitPrice <= 0 || form.quantity <= 0;
+  }
+
+  protected async onRelist(listingId: number, sessionItemId: number): Promise<void> {
+    const form = this.relistForms()[listingId];
+    if (!form || form.unitPrice <= 0 || form.quantity <= 0) return;
+    await this.sessionService.relistListing(
+      listingId,
+      sessionItemId,
+      form.unitPrice,
+      form.quantity,
+      form.taxRate,
+    );
+    this.closeRelistForm(listingId);
   }
 
   protected formatDays(days: number | null): string {

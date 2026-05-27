@@ -46,10 +46,18 @@ export class SessionListingStepComponent implements OnInit {
     }, new Map<number, SessionListing[]>()),
   );
 
+  protected readonly relistedListingIds = computed(() => {
+    const ids = new Set<number>();
+    for (const l of this.sessionService.listings()) {
+      if (l.parent_listing_id !== null) ids.add(l.parent_listing_id);
+    }
+    return ids;
+  });
+
   protected readonly totalRevenue = computed(() =>
     this.sessionService
       .listings()
-      .reduce((sum, l) => sum + l.unit_price * l.quantity - l.tax_amount, 0),
+      .reduce((sum, l) => sum + l.unit_price * l.quantity_remaining * (1 - l.tax_rate / 100), 0),
   );
 
   async ngOnInit(): Promise<void> {
@@ -68,10 +76,9 @@ export class SessionListingStepComponent implements OnInit {
     for (const node of this.sessionService.sessionItems()) {
       const crafted =
         this.craftsDoneMap().get(node.item_id)?.quantity_crafted ?? node.craft_quantity;
-      const listed = (this.listingsByItem().get(node.session_item_id) ?? []).reduce(
-        (s, l) => s + l.quantity,
-        0,
-      );
+      const listed = (this.listingsByItem().get(node.session_item_id) ?? [])
+        .filter((l) => l.parent_listing_id === null)
+        .reduce((s, l) => s + l.quantity, 0);
       initial[node.session_item_id] = {
         quantity: Math.max(1, crafted - listed),
         unitPrice: lastPrices[node.item_id] ?? 0,
@@ -86,7 +93,9 @@ export class SessionListingStepComponent implements OnInit {
   }
 
   protected getQuantityListed(sessionItemId: number): number {
-    return (this.listingsByItem().get(sessionItemId) ?? []).reduce((s, l) => s + l.quantity, 0);
+    return (this.listingsByItem().get(sessionItemId) ?? [])
+      .filter((l) => l.parent_listing_id === null)
+      .reduce((s, l) => s + l.quantity, 0);
   }
 
   protected getCoverage(

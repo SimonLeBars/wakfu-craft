@@ -176,7 +176,10 @@ export class SessionStepsRepository {
              l.unit_price, l.quantity, l.tax_rate, l.listed_at,
              CAST(ROUND(l.unit_price * l.quantity * l.tax_rate / 100.0) AS INTEGER) AS tax_amount,
              COALESCE(SUM(s.quantity), 0) AS quantity_sold,
-             l.quantity - COALESCE(SUM(s.quantity), 0) AS quantity_remaining
+             l.quantity
+               - COALESCE(SUM(s.quantity), 0)
+               - COALESCE((SELECT SUM(cl.quantity) FROM session_listings cl WHERE cl.parent_listing_id = l.id), 0)
+               AS quantity_remaining
       FROM session_listings l
       JOIN craft_session_items csi ON csi.id = l.session_item_id
       LEFT JOIN session_sales s ON s.listing_id = l.id
@@ -266,7 +269,7 @@ export class SessionStepsRepository {
       LEFT JOIN session_crafts_done cd ON cd.session_id = csi.session_id AND cd.item_id = csi.item_id
       LEFT JOIN (
         SELECT session_item_id, SUM(quantity) AS quantity_listed
-        FROM session_listings GROUP BY session_item_id
+        FROM session_listings WHERE parent_listing_id IS NULL GROUP BY session_item_id
       ) listed ON listed.session_item_id = csi.id
       LEFT JOIN (
         SELECT l.session_item_id, SUM(s.quantity) AS quantity_sold

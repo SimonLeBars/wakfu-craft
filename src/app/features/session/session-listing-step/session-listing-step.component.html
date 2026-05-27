@@ -25,7 +25,9 @@
         @if (itemListings.length > 0) {
           <div class="listing-entries">
             @for (listing of itemListings; track listing.id) {
-              <div class="listing-entry">
+              @let isRelisted =
+                relistedListingIds().has(listing.id) && listing.quantity_remaining === 0;
+              <div class="listing-entry" [class.listing-entry--relisted]="isRelisted">
                 <span class="listing-entry__date">{{
                   listing.listed_at | date: 'dd/MM HH:mm'
                 }}</span>
@@ -36,18 +38,21 @@
                 <span class="listing-entry__tax">{{ listing.tax_rate }}%</span>
                 <span class="listing-entry__total"
                   >=
-                  {{
-                    listing.unit_price * listing.quantity - listing.tax_amount | number: '1.0-0'
-                  }}
+                  {{ listing.unit_price * listing.quantity - listing.tax_amount | number: '1.0-0' }}
                   k net</span
                 >
-                <button
-                  class="btn-delete"
-                  (click)="onDeleteListing(listing.id)"
-                  aria-label="Supprimer cette mise en vente"
-                >
-                  ✕
-                </button>
+                @if (isRelisted) {
+                  <span class="listing-entry__relist-badge">↺ remis en vente</span>
+                }
+                @if (!isRelisted) {
+                  <button
+                    class="btn-delete"
+                    (click)="onDeleteListing(listing.id)"
+                    aria-label="Supprimer cette mise en vente"
+                  >
+                    ✕
+                  </button>
+                }
               </div>
             }
           </div>

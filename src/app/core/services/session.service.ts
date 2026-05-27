@@ -177,6 +177,23 @@ export class SessionService {
     await Promise.all([this.loadListings(), this.loadSales(), this.loadReport()]);
   }
 
+  async relistListing(
+    parentListingId: number,
+    sessionItemId: number,
+    unitPrice: number,
+    quantity: number,
+    taxRate: number,
+  ): Promise<void> {
+    await window.electronAPI.sessions.addListing(
+      sessionItemId,
+      parentListingId,
+      unitPrice,
+      quantity,
+      taxRate,
+    );
+    await Promise.all([this.loadListings(), this.loadReport()]);
+  }
+
   async loadReport(): Promise<void> {
     const session = this.activeSession();
     if (!session) return;
